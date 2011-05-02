@@ -2,18 +2,20 @@
 $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
 require "rack/oauth2/server"
 require "uri"
+
+# this is a weird way to shorten the namespace
 include Rack::OAuth2
 
 
-if (i = ARGV.index("--db")) && ARGV[i+1]
-  url = ARGV[i + 1]
-  uri = URI.parse(url)
-  uri = URI.parse("mongo://#{url}") if uri.opaque
-  db = Mongo::Connection.new(uri.host, uri.port)[uri.path.sub(/^\//, "")]
-  db.authenticate uri.user, uri.password if uri.user
-  Server.database = db
-  ARGV[i,2] = []
-end
+# if (i = ARGV.index("--db")) && ARGV[i+1]
+#   url = ARGV[i + 1]
+#   uri = URI.parse(url)
+#   uri = URI.parse("mongo://#{url}") if uri.opaque
+#   db = Mongo::Connection.new(uri.host, uri.port)[uri.path.sub(/^\//, "")]
+#   db.authenticate uri.user, uri.password if uri.user
+#   Server.database = db
+#   ARGV[i,2] = []
+# end
 if (i = ARGV.index("--port") || ARGV.index("-p")) && ARGV[i+1]
   port = ARGV[i + 1].to_i
   ARGV[i,2] = []
@@ -23,7 +25,7 @@ end
 case ARGV[0]
 when "list"
 
-  fail "No database. Use the --db option to tell us which database to use" unless Server.database
+  # fail "No database. Use the --db option to tell us which database to use" unless Server.database
   Server::Client.all.each do |client|
     next if client.revoked
     print "%-30s\t%s\n" % [client.display_name, client.link]
@@ -33,7 +35,7 @@ when "list"
 
 when "register"
 
-  fail "No database. Use the --db option to tell us which database to use" unless Server.database
+  # fail "No database. Use the --db option to tell us which database to use" unless Server.database
   begin
     print "Application name:\t"
     display_name = $stdin.gets
@@ -43,7 +45,7 @@ when "register"
     redirect_uri = $stdin.gets
     print "Scope (space separated names):\t\t"
     scope = $stdin.gets
-    client = Server.register(:display_name=>display_name, :link=>link, :redirect_uri=>redirect_uri, :scope=>scope)
+    client = Server::Client.create(:display_name=>display_name, :link=>link, :redirect_uri=>redirect_uri, :scope=>scope)
   rescue
     puts "\nFailed to register client: #{$!}"
     exit -1
@@ -54,7 +56,7 @@ when "register"
 
 when "setup"
 
-  fail "No database. Use the --db option to tell us which database to use" unless Server.database
+  # fail "No database. Use the --db option to tell us which database to use" unless Server.database
   puts "Where would you mount the Web console? This is a URL that must end with /admin,"
   puts "for example, http://example.com/oauth/admin"
   print ": "
@@ -63,7 +65,7 @@ when "setup"
     uri.normalize!
     fail "No an HTTP/S URL" unless uri.absolute? && %{http https}.include?(uri.scheme)
     fail "Path must end with /admin" unless uri.path[/\/admin$/]
-    client = Server.register(:display_name=>"OAuth Console", :link=>uri.to_s, :image_url=>"#{uri.to_s}/images/oauth-2.png",
+    client = Server::Client.create(:display_name=>"OAuth Console", :link=>uri.to_s, :image_url=>"#{uri.to_s}/images/oauth-2.png",
                              :redirect_uri=>uri.to_s, :scope=>"oauth-admin")
   rescue
     puts "\nFailed to register client: #{$!}"
@@ -128,11 +130,11 @@ when "practice"
   end
   require "rack/oauth2/server/practice"
 
-  fail "No database. Use the --db option to tell us which database to use" unless Server.database
+  # fail "No database. Use the --db option to tell us which database to use" unless Server.database
   port ||= 8080
   admin_url = "http://localhost:#{port}/oauth/admin"
   unless client = Server::Client.lookup(admin_url)
-    client = Server.register(:display_name=>"Practice OAuth Console", :image_url=>"#{admin_url}/images/oauth-2.png",
+    client = Server::Client.create(:display_name=>"Practice OAuth Console", :image_url=>"#{admin_url}/images/oauth-2.png",
                              :link=>admin_url, :redirect_uri=>admin_url, :scope=>"oauth-admin")
   end
   Server::Admin.configure do |config|
@@ -162,26 +164,26 @@ when "practice"
     map("/oauth/admin") { run Server::Admin.new }
   end.start
 
-when "migrate"
-
-  fail "No database. Use the --db option to tell us which database to use" unless Server.database
-  puts "Set all clients to this scope (can change later by calling Client.register):"
-  print ": "
-  scope = $stdin.gets.strip.split
-  puts "Updating Client scope to #{scope.join(", ")}"
-  Server::Client.collection.find({ :scope=>{ :$exists=>false } }, :fields=>[]).each do |client|
-    update = { :scope=>scope,
-      :tokens_granted=>Server::AccessToken.count(:client_id=>client["_id"]),
-      :tokens_revoked=>Server::AccessToken.count(:client_id=>client["_id"], :revoked=>true) }
-    Server::Client.collection.update({ :_id=>client["_id"] }, { :$set=>update })
-  end
-  [Server::AccessToken, Server::AccessGrant, Server::AuthRequest].each do |mod|
-    puts "Updating #{mod.name} scope from string to array"
-    mod.collection.find({ :scope=>{ :$type=>2 } }, :fields=>[]).each do |token|
-      scope = token["scope"].split
-      mod.collection.update({ :_id=>token["_id"] }, { :$set=>{ :scope=>scope } })
-    end
-  end
+# when "migrate"
+# 
+#   # fail "No database. Use the --db option to tell us which database to use" unless Server.database
+#   puts "Set all clients to this scope (can change later by calling Client.register):"
+#   print ": "
+#   scope = $stdin.gets.strip.split
+#   puts "Updating Client scope to #{scope.join(", ")}"
+#   Server::Client.collection.find({ :scope=>{ :$exists=>false } }, :fields=>[]).each do |client|
+#     update = { :scope=>scope,
+#       :tokens_granted=>Server::AccessToken.count(:client_id=>client["_id"]),
+#       :tokens_revoked=>Server::AccessToken.count(:client_id=>client["_id"], :revoked=>true) }
+#     Server::Client.collection.update({ :_id=>client["_id"] }, { :$set=>update })
+#   end
+#   [Server::AccessToken, Server::AccessGrant, Server::AuthRequest].each do |mod|
+#     puts "Updating #{mod.name} scope from string to array"
+#     mod.collection.find({ :scope=>{ :$type=>2 } }, :fields=>[]).each do |token|
+#       scope = token["scope"].split
+#       mod.collection.update({ :_id=>token["_id"] }, { :$set=>{ :scope=>scope } })
+#     end
+#   end
 else
 
   print <<-TEXT

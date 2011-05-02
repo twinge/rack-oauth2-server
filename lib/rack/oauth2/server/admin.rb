@@ -136,10 +136,10 @@ module Rack
           json.to_json
         end
 
-        get "/api/clients/history" do
-          content_type "application/json"
-          { :data=>Server::AccessToken.historical }.to_json
-        end
+        # get "/api/clients/history" do
+        #   content_type "application/json"
+        #   { :data=>Server::AccessToken.historical }.to_json
+        # end
 
         post "/api/clients" do
           begin
@@ -171,11 +171,11 @@ module Rack
           json.to_json
         end
 
-        get "/api/client/:id/history" do
-          content_type "application/json"
-          client = Server::Client.find(params[:id])
-          { :data=>Server::AccessToken.historical(:client_id=>client.id) }.to_json
-        end
+        # get "/api/client/:id/history" do
+        #   content_type "application/json"
+        #   client = Server::Client.find(params[:id])
+        #   { :data=>Server::AccessToken.historical(:client_id=>client.id) }.to_json
+        # end
 
         put "/api/client/:id" do
           client = Server::Client.find(params[:id])

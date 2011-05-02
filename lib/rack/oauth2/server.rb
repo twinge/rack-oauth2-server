@@ -63,14 +63,15 @@ module Rack
         #     :display_name=>"My  Application", :link=>"http://example.com",
         #     :scope=>config["scope"],
         #     :redirect_uri=>"http://example.com/oauth/callback"
-        def register(args)
-          if args[:id] && args[:secret] && (client = get_client(args[:id]))
-            fail "Client secret does not match" unless client.secret == args[:secret]
-            client.update args
-          else
-            Client.create(args)
-          end
-        end
+
+        # def register(args)
+        #   if args[:id] && args[:secret] && (client = get_client(args[:id]))
+        #     fail "Client secret does not match" unless client.secret == args[:secret]
+        #     client.update args
+        #   else
+        #     Client.create(args)
+        #   end
+        # end
 
         # Creates and returns a new access grant. Actually, returns only the
         # authorization code which you can turn into an access token by
