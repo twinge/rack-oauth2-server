@@ -21,7 +21,7 @@ module Rack
         # oauth.authorization)
         # @return [AuthReqeust]
         def get_auth_request(authorization)
-          AuthRequest.find(authorization)
+          AuthRequest.find_by_code(authorization)
         end
 
         # Returns Client from client identifier.
@@ -29,7 +29,8 @@ module Rack
         # @param [String] client_id Client identifier (e.g. from oauth.client.id)
         # @return [Client]
         def get_client(client_id)
-          Client.find(client_id)
+          p client_id
+          Client.find_by_code(client_id)
         end
 
         # Registers and returns a new Client. Can also be used to update
@@ -64,14 +65,14 @@ module Rack
         #     :scope=>config["scope"],
         #     :redirect_uri=>"http://example.com/oauth/callback"
 
-        # def register(args)
-        #   if args[:id] && args[:secret] && (client = get_client(args[:id]))
-        #     fail "Client secret does not match" unless client.secret == args[:secret]
-        #     client.update args
-        #   else
-        #     Client.create(args)
-        #   end
-        # end
+        def register(args)
+          if args[:id] && args[:secret] && (client = get_client(args[:id]))
+            fail "Client secret does not match" unless client.secret == args[:secret]
+            client.update args
+          else
+            Client.create(args)
+          end
+        end
 
         # Creates and returns a new access grant. Actually, returns only the
         # authorization code which you can turn into an access token by
@@ -170,8 +171,6 @@ module Rack
         return @app.call(env) if options.path && request.path.index(options.path) != 0
 
         begin
-          # Use options.database if specified.
-          org_database, Server.database = Server.database, options.database || Server.database
           logger = options.logger || env["rack.logger"]
 
           # 3.  Obtaining End-User Authorization
@@ -215,7 +214,7 @@ module Rack
             response = @app.call(env)
             if response[0] == 403
               scope = Utils.normalize_scope(response[1]["oauth.no_scope"])
-              challenge = 'OAuth realm="%s", error="insufficient_scope", scope="%s"' % [(options.realm || request.host), scope.join(" ")]
+              challenge = 'OAuth realm="%s", error="insufficient_scope", scope="%s"' % [(options.realm || request.host), scope]
               response[1]["WWW-Authenticate"] = challenge
               return response
             else
@@ -235,8 +234,6 @@ module Rack
               return response
             end
           end
-        ensure
-          Server.database = org_database
         end
       end
 
@@ -257,10 +254,10 @@ module Rack
               return bad_request("Invalid authorization request")
             end
             response_type = auth_request.response_type # Needed for error handling
-            client = self.class.get_client(auth_request.client_id)
+            client = auth_request.client
             # Pass back to application, watch for 403 (deny!)
-            logger.info "RO2S: Client #{client.display_name} requested #{auth_request.response_type} with scope #{auth_request.scope.join(" ")}" if logger
-            request.env["oauth.authorization"] = auth_request.id.to_s
+            logger.info "RO2S: Client #{client.display_name} requested #{auth_request.response_type} with scope #{auth_request.scope}" if logger
+            request.env["oauth.authorization"] = auth_request.code
             response = @app.call(request.env)
             raise AccessDeniedError if response[0] == 403
             return response
@@ -281,13 +278,13 @@ module Rack
             raise RedirectUriMismatchError unless client.redirect_uri.nil? || client.redirect_uri == redirect_uri.to_s
             raise UnsupportedResponseTypeError unless options.authorization_types.include?(response_type)
             requested_scope = Utils.normalize_scope(request.GET["scope"])
-            allowed_scope = client.scope
+            allowed_scope = Utils.normalize_scope(client.scope)
             raise InvalidScopeError unless (requested_scope - allowed_scope).empty?
             # Create object to track authorization request and let application
             # handle the rest.
             auth_request = AuthRequest.create(client, requested_scope, redirect_uri.to_s, response_type, state)
             uri = URI.parse(request.url)
-            uri.query = "authorization=#{auth_request.id.to_s}"
+            uri.query = "authorization=#{auth_request.code}"
             return redirect_to(uri, 303)
           end
         rescue OAuthError=>error
@@ -319,7 +316,7 @@ module Rack
         if auth_request.response_type == "code"
           if auth_request.grant_code
             logger.info "RO2S: Client #{auth_request.client_id} granted access code #{auth_request.grant_code}" if logger
-            params = { :code=>auth_request.grant_code, :scope=>auth_request.scope.join(" "), :state=>auth_request.state }
+            params = { :code=>auth_request.grant_code, :scope=>auth_request.scope, :state=>auth_request.state }
           else
             logger.info "RO2S: Client #{auth_request.client_id} denied authorization" if logger
             params = { :error=>:access_denied, :state=>auth_request.state }
@@ -329,7 +326,7 @@ module Rack
         else # response type if token
           if auth_request.access_token
             logger.info "RO2S: Client #{auth_request.client_id} granted access token #{auth_request.access_token}" if logger
-            params = { :access_token=>auth_request.access_token, :scope=>auth_request.scope.join(" "), :state=>auth_request.state }
+            params = { :access_token=>auth_request.access_token, :scope=>auth_request.scope, :state=>auth_request.state }
           else
             logger.info "RO2S: Client #{auth_request.client_id} denied authorization" if logger
             params = { :error=>:access_denied, :state=>auth_request.state }
@@ -348,12 +345,13 @@ module Rack
           case request.POST["grant_type"]
           when "none"
             # 4.1 "none" access grant type (i.e. two-legged OAuth flow)
-            requested_scope = request.POST["scope"] ? Utils.normalize_scope(request.POST["scope"]) : client.scope
+            requested_scope = request.POST["scope"] ? Utils.normalize_scope(request.POST["scope"]) : Utils.normalize_scope(client.scope)
             access_token = AccessToken.create_token_for(client, requested_scope)
           when "authorization_code"
             # 4.1.1.  Authorization Code
             grant = AccessGrant.from_code(request.POST["code"])
-            raise InvalidGrantError, "Wrong client" unless grant && client.id == grant.client_id
+            p grant
+            raise InvalidGrantError, "Wrong client" unless grant && client == grant.client
             unless client.redirect_uri.nil? || client.redirect_uri.to_s.empty?
               raise InvalidGrantError, "Wrong redirect URI" unless grant.redirect_uri == Utils.parse_redirect_uri(request.POST["redirect_uri"]).to_s
             end
@@ -364,8 +362,8 @@ module Rack
             # 4.1.2.  Resource Owner Password Credentials
             username, password = request.POST.values_at("username", "password")
             raise InvalidGrantError, "Missing username/password" unless username && password
-            requested_scope = request.POST["scope"] ? Utils.normalize_scope(request.POST["scope"]) : client.scope
-            allowed_scope = client.scope
+            requested_scope = request.POST["scope"] ? Utils.normalize_scope(request.POST["scope"]) : Utils.normalize_scope(client.scope)
+            allowed_scope = Utils.normalize_scope(client.scope)
             raise InvalidScopeError unless (requested_scope - allowed_scope).empty?
             args = [username, password]
             args << client.id << requested_scope unless options.authenticator.arity == 2
@@ -377,7 +375,7 @@ module Rack
           end
           logger.info "RO2S: Access token #{access_token.token} granted to client #{client.display_name}, identity #{access_token.identity}" if logger
           response = { :access_token=>access_token.token }
-          response[:scope] = access_token.scope.join(" ")
+          response[:scope] = access_token.scope
           return [200, { "Content-Type"=>"application/json", "Cache-Control"=>"no-store" }, [response.to_json]]
           # 4.3.  Error Response
         rescue OAuthError=>error
@@ -406,8 +404,6 @@ module Rack
         end
         raise InvalidClientError if client.revoked
         return client
-      rescue BSON::InvalidObjectId
-        raise InvalidClientError
       end
 
       # Rack redirect response.

@@ -42,9 +42,9 @@ module Rack
         # @return [Client, nil] Client if authenticated, or while authorizing
         def client
           if access_token
-            @client ||= Server.get_client(Server.get_access_token(access_token).client_id)
+            @client ||= Server.get_access_token(access_token).client
           elsif authorization
-            @client ||= Server.get_client(Server.get_auth_request(authorization).client_id)
+            @client ||= Server.get_auth_request(authorization).client
           end
         end
 
@@ -136,7 +136,7 @@ module Rack
         end
 
         def inspect
-          authorization ? "Authorization request for #{scope.join(",")} on behalf of #{client.display_name}" :
+          authorization ? "Authorization request for #{Utils.normalize_scope(scope).join(",")} on behalf of #{client.display_name}" :
           authenticated? ? "Authenticated as #{identity}" : nil
         end
 

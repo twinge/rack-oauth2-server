@@ -6,7 +6,7 @@ module Rack
       # particular scope. Use this to keep state from incoming authorization
       # request to grant/deny redirect.
       class AuthRequest < ActiveRecord::Base
-        belongs_to :client
+        belongs_to :client, :class_name => 'Rack::OAuth2::Server::Client'
 
         # Find AuthRequest from identifier.
         # def find(request_id)
@@ -18,10 +18,11 @@ module Rack
         # Create a new authorization request. This holds state, so in addition
         # to client ID and scope, we need to know the URL to redirect back to
         # and any state value to pass back in that redirect.
-        def create(client, scope, redirect_uri, response_type, state)
-          scope = Utils.normalize_scope(scope) & client.scope # Only allowed scope
+        def self.create(client, scope, redirect_uri, response_type, state)
+          scope = Utils.normalize_scope(scope) & Utils.normalize_scope(client.scope) # Only allowed scope
 
           attributes = {
+            :code => Server.secure_random,
             :client_id => client.id,
             :scope => scope,
             :redirect_uri => (client.redirect_uri || redirect_uri),
@@ -36,7 +37,6 @@ module Rack
         def grant!(identity)
           raise ArgumentError, "Must supply a identity" unless identity
           return if revoked
-          return unless client = Client.find(client_id)
 
           if response_type == "code" # Requested authorization code
             access_grant = AccessGrant.create(identity, client, scope, redirect_uri)

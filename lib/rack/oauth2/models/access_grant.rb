@@ -5,7 +5,7 @@ module Rack
       # The access grant is a nonce, new grant created each time we need it and
       # good for redeeming one access token.
       class AccessGrant < ActiveRecord::Base
-        belongs_to :client
+        belongs_to :client, :class_name => 'Rack::OAuth2::Server::Client'
 
         # Find AccessGrant from authentication code.
         def self.from_code(code)
@@ -13,22 +13,19 @@ module Rack
         end
 
         # Create a new access grant.
-        def create(identity, client, scope, redirect_uri = nil, expires = nil)
+        def self.create(identity, client, scope, redirect_uri = nil, expires = nil)
           raise ArgumentError, "Identity must be String or Integer" unless String === identity || Integer === identity
-          scope = Utils.normalize_scope(scope) & client.scope # Only allowed scope
+          scope = Utils.normalize_scope(scope) & Utils.normalize_scope(client.scope) # Only allowed scope
           expires_at = Time.now.to_i + (expires || 300)
 
           attributes = {
-            :id => Server.secure_random,
+            :code => Server.secure_random,
             :identity=>identity,
             :scope=>scope,
             :client_id=>client.id,
             :redirect_uri=>client.redirect_uri || redirect_uri,
             :created_at=>Time.now.to_i,
-            :expires_at=>expires_at,
-            :granted_at=>nil,
-            :access_token=>nil,
-            :revoked=>nil
+            :expires_at=>expires_at
           }
 
           super(attributes)
@@ -42,7 +39,6 @@ module Rack
         # InvalidGrantError.
         def authorize!
           raise InvalidGrantError, "You can't use the same access grant twice" if self.access_token || self.revoked
-          client = Client.find(client_id) or raise InvalidGrantError
           access_token = AccessToken.get_token_for(identity, client, scope)
           update_attributes(:access_token => access_token.token, :granted_at => Time.now)
           access_token

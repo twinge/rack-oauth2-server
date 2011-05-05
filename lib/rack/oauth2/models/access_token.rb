@@ -7,11 +7,11 @@ module Rack
       # An access token is a unique code, associated with a client, an identity
       # and scope. It may be revoked, or expire after a certain period.
       class AccessToken < ActiveRecord::Base
-        belongs_to :client # counter_cache?
+        belongs_to :client, :class_name => 'Rack::OAuth2::Server::Client' # counter_cache?
 
         # Creates a new AccessToken for the given client and scope.
         def self.create_token_for(client, scope)
-          scope = Utils.normalize_scope(scope) & client.scope # Only allowed scope
+          scope = Utils.normalize_scope(scope) & Utils.normalize_scope(client.scope) # Only allowed scope
 
           attributes = {
             :code => Server.secure_random,
@@ -33,7 +33,7 @@ module Rack
         # Get an access token (create new one if necessary).
         def self.get_token_for(identity, client, scope)
           raise ArgumentError, "Identity must be String or Integer" unless String === identity || Integer === identity
-          scope = Utils.normalize_scope(scope) & client.scope # Only allowed scope
+          scope = Utils.normalize_scope(scope) & Utils.normalize_scope(client.scope) # Only allowed scope
 
           token = first(:conditions => {:identity=>identity, :scope=>scope, :client_id=>client.id, :revoked=>nil})
 
@@ -42,7 +42,7 @@ module Rack
               :code => Server.secure_random,
               :identity => identity,
               :scope => scope,
-              :client => client
+              :client_id => client.id
             }
 
             create(attributes)
@@ -51,6 +51,8 @@ module Rack
 
           token
         end
+
+        alias_attribute :token, :code
 
         # Find all AccessTokens for an identity.
         def self.from_identity(identity)
