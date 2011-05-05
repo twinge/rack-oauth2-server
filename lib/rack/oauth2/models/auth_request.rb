@@ -24,7 +24,7 @@ module Rack
           attributes = {
             :code => Server.secure_random,
             :client_id => client.id,
-            :scope => scope,
+            :scope => scope.join(' '),
             :redirect_uri => (client.redirect_uri || redirect_uri),
             :response_type => response_type,
             :state => state

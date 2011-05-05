@@ -15,7 +15,7 @@ module Rack
 
           attributes = {
             :code => Server.secure_random,
-            :scope => scope,
+            :scope => scope.join(' '),
             :client => client
           }
 
@@ -41,7 +41,7 @@ module Rack
             attributes = {
               :code => Server.secure_random,
               :identity => identity,
-              :scope => scope,
+              :scope => scope.join(' '),
               :client_id => client.id
             }
 
