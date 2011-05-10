@@ -26,7 +26,26 @@ support a different database engine, send us a pull request.
 
 === Step 2: Use The Server
 
-For Rails 2.3/3.0, Rack::OAuth2::Server automatically adds itself as middleware
+### Rails 3.0 ###
+
+Configure Rack::OAuth2::Server by adding the following to your +config/environment.rb+ (or one of the specific environment files). For example:
+
+  require "rack/oauth2/server/railtie"
+
+  # configure rack-oauth2-server
+  Your::Application.configure do
+    config.after_initialize do
+      # integrate with devise
+      config.oauth.authenticator = lambda do |email, password|
+        user = User.find_for_database_authentication(:email => email)
+        user if user && user.valid_password?(password)
+      end
+    end
+  end
+  
+### Rails 2.3 ###
+
+Rack::OAuth2::Server automatically adds itself as middleware
 when required, but you do need to configure it from within
 +config/environment.rb+ (or one of the specific environment files). For example:
 
