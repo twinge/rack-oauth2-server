@@ -14,15 +14,7 @@ The authorization server needs to keep track of clients, authorization
 requests, access grants and access tokens. That could only mean one thing: a
 database.
 
-The current release uses MongoDB[http://www.mongodb.org/]. You're going to need
-a running server and open connection in the form of a +Mongo::DB+ object.
-Because MongoDB is schema-less, there's no need to run migrations.
-
-If MongoDB is not your flavor, you can easily change the models to support a
-different database engine. All the persistence logic is located in
-+lib/rack/oauth2/models+ and kept simple by design. And if you did the work to
-support a different database engine, send us a pull request.
-
+An example of the migration you will want to perform is here: https://gist.github.com/33f732bd9bab1413cd85
 
 === Step 2: Use The Server
 
@@ -60,7 +52,9 @@ when required, but you do need to configure it from within
     end
   end
 
-For Sinatra and Padrino, first require +rack/oauth2/sinatra+ and register
+==== Sinatra and Padrino
+
+First require +rack/oauth2/sinatra+ and register
 Rack::OAuth2::Sinatra into your application. For example:
 
   require "rack/oauth2/sinatra"
@@ -78,8 +72,9 @@ Rack::OAuth2::Sinatra into your application. For example:
     . . .
   end
 
-With any other Rack server, you can +use Rack::OAuth2::Server+ and pass your
-own {Rack::OAuth2::Server::Options} object.
+==== Generic Rack Server
+
+You can +use Rack::OAuth2::Server+ and pass your own {Rack::OAuth2::Server::Options} object.
 
 The configuration options are:
 
@@ -133,7 +128,7 @@ authorization request.
 Once granted, your application signals the grant by setting the response header
 +oauth.authorization+ to the authorization handle it got before, and setting
 the response header +oauth.identity+ to the authorized identity. This is
-typicaly the user ID or account ID, but can be anything you want, as long as
+typically the user ID or account ID, but can be anything you want, as long as
 it's a string. Rack::OAuth2::Server intercepts this response and redirects the
 user back to the client application with an authorization code or access token.
 
