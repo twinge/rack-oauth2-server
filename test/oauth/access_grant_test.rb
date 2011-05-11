@@ -22,13 +22,13 @@ class AccessGrantTest < Test::Unit::TestCase
         assert_equal 401, last_response.status
       end
       should "respond with authentication method OAuth" do
-        assert_equal "OAuth", last_response["WWW-Authenticate"].split.first
+        assert_equal "OAuth", last_response.headers["WWW-Authenticate"].split.first
       end
       should "respond with realm" do
-        assert_match " realm=\"example.org\"", last_response["WWW-Authenticate"] 
+        assert_match " realm=\"example.org\"", last_response.headers["WWW-Authenticate"] 
       end
       should "respond with error code #{error}" do
-        assert_match " error=\"#{error}\"", last_response["WWW-Authenticate"]
+        assert_match " error=\"#{error}\"", last_response.headers["WWW-Authenticate"]
       end
     end
 
@@ -40,15 +40,15 @@ class AccessGrantTest < Test::Unit::TestCase
         assert_equal "application/json", last_response.content_type
       end
       should "respond with cache control no-store" do
-        assert_equal "no-store", last_response["Cache-Control"]
+        assert_equal "no-store", last_response.headers["Cache-Control"]
       end
       should "not respond with error code" do
         assert JSON.parse(last_response.body)["error"].nil?
       end
-      should "response with access token" do
+      should "respond with access token" do
         assert_match /[a-f0-9]{32}/i, JSON.parse(last_response.body)["access_token"]
       end
-      should "response with scope" do
+      should "respond with scope" do
         assert_equal scope || "", JSON.parse(last_response.body)["scope"]
       end
     end
@@ -60,13 +60,21 @@ class AccessGrantTest < Test::Unit::TestCase
   def setup
     super
     # Get authorization code.
-    params = { :redirect_uri=>client.redirect_uri, :client_id=>client.id, :client_secret=>client.secret, :response_type=>"code",
-               :scope=>"read write", :state=>"bring this back" }
+    params = { :redirect_uri=>client.redirect_uri, :client_id=>client.id, 
+              :client_secret=>client.secret, :response_type=>"code",
+              :scope=>"read write", :state=>"bring this back" }
     get "/oauth/authorize?" + Rack::Utils.build_query(params)
-    get last_response["Location"] if last_response.status == 303
+    # puts "Response from attempt to authorize is: " + last_response.inspect
+    if last_response.status == 303
+      auth_uri = last_response.headers["Location"].gsub("http://example.org","")
+    end
+    get auth_uri
+    # puts "Response from auth token get is:" + last_response.inspect
     authorization = last_response.body[/authorization:\s*(\S+)/, 1]
-    post "/oauth/grant", :authorization=>authorization
-    @code = Rack::Utils.parse_query(URI.parse(last_response["Location"]).query)["code"]
+    post "/oauth/grant", :authorization => authorization
+    # puts "Response from grant request is: " + last_response.inspect
+    # puts "LocationHeader is: " + (last_response.headers["Location"] || "nil")
+    @code = Rack::Utils.parse_query(URI.parse(last_response.headers["Location"]).query)["code"]
   end
 
   def request_none(scope = nil)
@@ -91,6 +99,7 @@ class AccessGrantTest < Test::Unit::TestCase
     params[:username] = username if username
     params[:password] = password if password
     post "/oauth/access_token", params
+    # puts "request with username and password response is: " + last_response.inspect
   end
 
 
@@ -105,7 +114,7 @@ class AccessGrantTest < Test::Unit::TestCase
   end
 
   context "no client ID" do
-    setup { request_access_token :client_id=>nil }
+    setup { request_access_token :client_id => nil }
     should_respond_with_authentication_error :invalid_client
   end
 
@@ -156,7 +165,12 @@ class AccessGrantTest < Test::Unit::TestCase
 
   context "authorization code for different client" do
     setup do
-      grant = Server::AccessGrant.create("foo bar", Server.register(:scope=>%w{read write}), "read write", nil)
+      grant = Server::AccessGrant.create("foo bar", 
+        Server.register(
+          :scope => "read write", 
+          :display_name => "some app",
+          :link => "http://www.example.org/"), 
+              "read write", nil)
       request_access_token :code=>grant.code
     end
     should_return_error :invalid_grant
@@ -177,7 +191,7 @@ class AccessGrantTest < Test::Unit::TestCase
 
   context "no redirect URI to match" do
     setup do
-      @client = Server.register(:display_name=>"No rediret", :scope=>"read write")
+      @client = Server.register(:display_name=>"No redirect", :scope=>"read write", :link => "http://www.example.org/")
       grant = Server::AccessGrant.create("foo bar", client, "read write", nil)
       request_access_token :code=>grant.code, :redirect_uri=>"http://uberclient.dot/oz"
     end
@@ -220,7 +234,7 @@ class AccessGrantTest < Test::Unit::TestCase
 
   context "no scope specified" do
     setup { request_with_username_password "cowbell", "more" }
-    should_respond_with_access_token "oauth-admin read write"
+    should_respond_with_access_token "read write oauth-admin"
   end
 
   context "given scope" do
@@ -249,7 +263,7 @@ class AccessGrantTest < Test::Unit::TestCase
       assert_equal client.id, @client_id
     end
     should "receive scope" do
-      assert_equal %w{read}, @scope
+      assert_equal "read", @scope
     end
 
     teardown { config.authenticator = @old }

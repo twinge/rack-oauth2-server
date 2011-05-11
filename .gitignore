@@ -5,6 +5,7 @@ doc
 *.gem
 test/rails/log
 *.lock
+*.db
 test/*/log/test.log
 test.log
 lib/rack/oauth2/admin/js/application.js

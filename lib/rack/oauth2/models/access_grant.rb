@@ -15,7 +15,6 @@ module Rack
         # Create a new access grant.
         def self.create(identity, client, scope, redirect_uri = nil, expires = nil)
           raise ArgumentError, "Identity must be String or Integer" unless String === identity || Integer === identity
-          scope = Utils.normalize_scope(scope) & Utils.normalize_scope(client.scope) # Only allowed scope
           expires_at = Time.now.to_i + (expires || 300)
 
           attributes = {

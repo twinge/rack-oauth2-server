@@ -44,7 +44,7 @@ end
 
 desc "Run all tests"
 Rake::TestTask.new do |task|
-  task.test_files = FileList['test/**/*_test.rb']
+  task.test_files = FileList['test/**/access_grant_test.rb']
   if Rake.application.options.trace
     #task.warning = true
     task.verbose = true
@@ -72,6 +72,8 @@ namespace :test do
   end
   desc "Run all tests against Rails 3.x"
   task :rails3 do
+    File.delete("test/rails3/test.db") if File.exist?("test/rails3/test.db")
+    File.delete("test/rails3/log/test.log") if File.exist?("test/rails3/log/test.log")
     sh "env BUNDLE_GEMFILE=Rails3 bundle exec rake test FRAMEWORK=rails"
   end
 end

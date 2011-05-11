@@ -8,23 +8,15 @@ module Rack
       class AuthRequest < ActiveRecord::Base
         belongs_to :client, :class_name => 'Rack::OAuth2::Server::Client'
 
-        # Find AuthRequest from identifier.
-        # def find(request_id)
-        #   id = BSON::ObjectId(request_id.to_s)
-        #   Server.new_instance self, collection.find_one(id)
-        # rescue BSON::InvalidObjectId
-        # end
-
         # Create a new authorization request. This holds state, so in addition
         # to client ID and scope, we need to know the URL to redirect back to
         # and any state value to pass back in that redirect.
         def self.create(client, scope, redirect_uri, response_type, state)
-          scope = Utils.normalize_scope(scope) & Utils.normalize_scope(client.scope) # Only allowed scope
 
           attributes = {
             :code => Server.secure_random,
             :client_id => client.id,
-            :scope => scope.join(' '),
+            :scope => scope,
             :redirect_uri => (client.redirect_uri || redirect_uri),
             :response_type => response_type,
             :state => state

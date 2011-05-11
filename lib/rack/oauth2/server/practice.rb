@@ -42,7 +42,7 @@ module Rack
     <title>OAuth 2.0 Practice Server</title>
   </head>
   <body>
-    <h1><a href="#{oauth.client.link}">#{oauth.client.display_name}</a> wants to access your account with the scope #{oauth.scope.join(", ")}</h1>
+    <h1><a href="#{oauth.client.link}">#{oauth.client.display_name}</a> wants to access your account with the scope #{oauth.scope}</h1>
     <form action="/oauth/grant" method="post" style="display:inline-block">
       <button>Grant</button>
       <input type="hidden" name="authorization" value="#{oauth.authorization}">

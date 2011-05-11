@@ -3,6 +3,7 @@ require "rack/oauth2/models"
 require "rack/oauth2/server/errors"
 require "rack/oauth2/server/utils"
 require "rack/oauth2/server/helper"
+require "active_record"
 
 
 module Rack
@@ -29,8 +30,8 @@ module Rack
         # @param [String] client_id Client identifier (e.g. from oauth.client.id)
         # @return [Client]
         def get_client(client_id)
-          p client_id
-          Client.find_by_code(client_id)
+          # p client_id
+          Client.find(client_id)
         end
 
         # Registers and returns a new Client. Can also be used to update
@@ -70,7 +71,7 @@ module Rack
             fail "Client secret does not match" unless client.secret == args[:secret]
             client.update args
           else
-            Client.create(args)
+            Client.create!(args)
           end
         end
 
@@ -213,7 +214,8 @@ module Rack
             # and return appropriate WWW-Authenticate header.
             response = @app.call(env)
             if response[0] == 403
-              scope = Utils.normalize_scope(response[1]["oauth.no_scope"])
+              #scope = Utils.normalize_scope(response[1]["oauth.no_scope"])
+              scope = response[1]["oauth.no_scope"]
               challenge = 'OAuth realm="%s", error="insufficient_scope", scope="%s"' % [(options.realm || request.host), scope]
               response[1]["WWW-Authenticate"] = challenge
               return response
@@ -277,9 +279,8 @@ module Rack
             client = get_client(request, :dont_authenticate => true)
             raise RedirectUriMismatchError unless client.redirect_uri.nil? || client.redirect_uri == redirect_uri.to_s
             raise UnsupportedResponseTypeError unless options.authorization_types.include?(response_type)
-            requested_scope = Utils.normalize_scope(request.GET["scope"])
-            allowed_scope = Utils.normalize_scope(client.scope)
-            raise InvalidScopeError unless (requested_scope - allowed_scope).empty?
+            requested_scope = request.GET["scope"]
+            raise InvalidScopeError unless (Utils.normalize_scope(requested_scope) - Utils.normalize_scope(client.scope)).empty?
             # Create object to track authorization request and let application
             # handle the rest.
             auth_request = AuthRequest.create(client, requested_scope, redirect_uri.to_s, response_type, state)
@@ -345,12 +346,12 @@ module Rack
           case request.POST["grant_type"]
           when "none"
             # 4.1 "none" access grant type (i.e. two-legged OAuth flow)
-            requested_scope = request.POST["scope"] ? Utils.normalize_scope(request.POST["scope"]) : Utils.normalize_scope(client.scope)
+            requested_scope = request.POST["scope"] || client.scope
             access_token = AccessToken.create_token_for(client, requested_scope)
           when "authorization_code"
             # 4.1.1.  Authorization Code
             grant = AccessGrant.from_code(request.POST["code"])
-            p grant
+            # p grant
             raise InvalidGrantError, "Wrong client" unless grant && client == grant.client
             unless client.redirect_uri.nil? || client.redirect_uri.to_s.empty?
               raise InvalidGrantError, "Wrong redirect URI" unless grant.redirect_uri == Utils.parse_redirect_uri(request.POST["redirect_uri"]).to_s
@@ -362,18 +363,18 @@ module Rack
             # 4.1.2.  Resource Owner Password Credentials
             username, password = request.POST.values_at("username", "password")
             raise InvalidGrantError, "Missing username/password" unless username && password
-            requested_scope = request.POST["scope"] ? Utils.normalize_scope(request.POST["scope"]) : Utils.normalize_scope(client.scope)
-            allowed_scope = Utils.normalize_scope(client.scope)
-            raise InvalidScopeError unless (requested_scope - allowed_scope).empty?
+            requested_scope = request.POST["scope"] || client.scope
+            raise InvalidScopeError unless (Utils.normalize_scope(requested_scope) - Utils.normalize_scope(client.scope)).empty?
             args = [username, password]
             args << client.id << requested_scope unless options.authenticator.arity == 2
             identity = options.authenticator.call(*args)
             raise InvalidGrantError, "Username/password do not match" unless identity
+            p "getting access token for scope of: " + requested_scope
             access_token = AccessToken.get_token_for(identity, client, requested_scope)
           else
             raise UnsupportedGrantType
           end
-          logger.info "RO2S: Access token #{access_token.token} granted to client #{client.display_name}, identity #{access_token.identity}" if logger
+          logger.info "RO2S: Access token #{access_token.token} granted to client #{client.display_name}, identity #{access_token.identity} that requested scope #{access_token.scope}" if logger
           response = { :access_token=>access_token.token }
           response[:scope] = access_token.scope
           return [200, { "Content-Type"=>"application/json", "Cache-Control"=>"no-store" }, [response.to_json]]
@@ -397,8 +398,11 @@ module Rack
         else
           client_id, client_secret = request.GET.values_at("client_id", "client_secret")
         end
-        client = self.class.get_client(client_id)
-        raise InvalidClientError if !client
+        begin
+          client = self.class.get_client(client_id)
+        rescue ActiveRecord::RecordNotFound
+          raise InvalidClientError
+        end
         unless options[:dont_authenticate]
           raise InvalidClientError unless client.secret == client_secret
         end

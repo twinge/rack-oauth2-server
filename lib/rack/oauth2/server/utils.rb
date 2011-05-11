@@ -21,6 +21,7 @@ module Rack
         # unique and sorted.
         def normalize_scope(scope)
           (Array === scope ? scope.join(" ") : scope || "").split(/\s+/).compact.uniq.sort
+          #return scope
         end
 
       end

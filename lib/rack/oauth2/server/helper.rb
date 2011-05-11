@@ -136,7 +136,7 @@ module Rack
         end
 
         def inspect
-          authorization ? "Authorization request for #{Utils.normalize_scope(scope).join(",")} on behalf of #{client.display_name}" :
+          authorization ? "Authorization request for #{scope} on behalf of #{client.display_name}" :
           authenticated? ? "Authenticated as #{identity}" : nil
         end
 

@@ -11,11 +11,9 @@ module Rack
 
         # Creates a new AccessToken for the given client and scope.
         def self.create_token_for(client, scope)
-          scope = Utils.normalize_scope(scope) & Utils.normalize_scope(client.scope) # Only allowed scope
-
           attributes = {
             :code => Server.secure_random,
-            :scope => scope.join(' '),
+            :scope => scope,
             :client => client
           }
 
@@ -33,7 +31,6 @@ module Rack
         # Get an access token (create new one if necessary).
         def self.get_token_for(identity, client, scope)
           raise ArgumentError, "Identity must be String or Integer" unless String === identity || Integer === identity
-          scope = Utils.normalize_scope(scope) & Utils.normalize_scope(client.scope) # Only allowed scope
 
           token = first(:conditions => {:identity=>identity, :scope=>scope, :client_id=>client.id, :revoked=>nil})
 
@@ -41,7 +38,7 @@ module Rack
             attributes = {
               :code => Server.secure_random,
               :identity => identity,
-              :scope => scope.join(' '),
+              :scope => scope,
               :client_id => client.id
             }
 

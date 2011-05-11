@@ -8,7 +8,7 @@ class ServerTest < Test::Unit::TestCase
   end
 
   context "get_auth_request" do
-    setup { @request = Server::AuthRequest.create(client, client.scope.join(" "), client.redirect_uri, "token", nil) }
+    setup { @request = Server::AuthRequest.create(client, client.scope, client.redirect_uri, "token", nil) }
     should "return authorization request" do
       assert_equal @request.id, Server.get_auth_request(@request.id).id
     end
