@@ -179,7 +179,7 @@ class Test::Unit::TestCase
       :display_name => "UberClient", 
       :redirect_uri => "http://uberclient.dot/callback", 
       :link => "http://example.com/", 
-      :scope => %w{read write oauth-admin})
+      :scope => "read write oauth-admin")
   end
 
   attr_reader :client, :end_user

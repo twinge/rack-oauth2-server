@@ -369,7 +369,6 @@ module Rack
             args << client.id << requested_scope unless options.authenticator.arity == 2
             identity = options.authenticator.call(*args)
             raise InvalidGrantError, "Username/password do not match" unless identity
-            p "getting access token for scope of: " + requested_scope
             access_token = AccessToken.get_token_for(identity, client, requested_scope)
           else
             raise UnsupportedGrantType
