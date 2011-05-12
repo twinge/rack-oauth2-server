@@ -27,7 +27,7 @@ class AuthorizationTest < Test::Unit::TestCase
       end
       should "inform user about scope" do
         response = last_response.body.split("\n").inject({}) { |h,l| n,v = l.split(/:\s*/) ; h[n.downcase] = v ; h }
-        assert_equal "read, write", response["scope"]
+        assert_equal "read write", response["scope"]
       end
     end
 
@@ -289,7 +289,9 @@ class AuthorizationTest < Test::Unit::TestCase
 
   context "unregistered redirect URI" do
     setup do
-      Rack::OAuth2::Server::Client.collection.update({ :_id=>client._id }, { :$set=>{ :redirect_uri=>nil } })
+      client_to_update = Rack::OAuth2::Server::Client.find(client.id)
+      client_to_update.redirect_uri = nil
+      client_to_update.save
       request_authorization :redirect_uri=>"http://uberclient.dot/oz"
     end
     should_ask_user_for_authorization

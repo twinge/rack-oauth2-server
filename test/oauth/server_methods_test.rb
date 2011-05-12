@@ -33,12 +33,14 @@ class ServerTest < Test::Unit::TestCase
   context "register" do
     context "no client ID" do
       setup do
-        @client = Server.register(:display_name=>"MyApp", :link=>"http://example.org", :image_url=>"http://example.org/favicon.ico",
-                                  :redirect_uri=>"http://example.org/oauth/callback", :scope=>%w{read write})
+        @client = Server.register(:display_name=>"MyApp", :link=>"http://example.org", 
+                                :image_url=>"http://example.org/favicon.ico",
+                                :redirect_uri=>"http://example.org/oauth/callback", 
+                                :scope=>"read write")
       end
 
       should "create new client" do
-        assert_equal 2, Server::Client.collection.count
+        assert_equal 2, Server::Client.count
         assert_contains Server::Client.all.map(&:id), @client.id
       end
 
@@ -59,11 +61,11 @@ class ServerTest < Test::Unit::TestCase
       end
 
       should "set scope" do
-        assert_equal %w{read write}, Server.get_client(@client.id).scope
+        assert_equal "read write", Server.get_client(@client.id).scope
       end
 
       should "assign client an ID" do
-        assert_match /[0-9a-f]{24}/, @client.id.to_s
+        assert_not_nil @client.id
       end
 
       should "assign client a secret" do
@@ -75,16 +77,17 @@ class ServerTest < Test::Unit::TestCase
 
       context "no such client" do
         setup do
-          @client = Server.register(:id=>"4ce24c423321e88ac5000015", :secret=>"foobar", :display_name=>"MyApp")
+          @client = Server.register(:id=>"5000015", :secret=>"foobar", 
+                                    :display_name=>"MyApp", :link => "http://foo.bar/")
         end
 
         should "create new client" do
-          assert_equal 2, Server::Client.collection.count
+          assert_equal 2, Server::Client.count
         end
 
-        should "should assign it the client identifier" do
-          assert_equal "4ce24c423321e88ac5000015", @client.id.to_s
-        end
+        # should "should assign it the client identifier" do
+        #  assert_equal "5000015", @client.id.to_s
+        # end
 
         should "should assign it the client secret" do
           assert_equal "foobar", @client.secret
@@ -97,16 +100,18 @@ class ServerTest < Test::Unit::TestCase
 
       context "existing client" do
         setup do
-          Server.register(:id=>"4ce24c423321e88ac5000015", :secret=>"foobar", :display_name=>"MyApp")
-          @client = Server.register(:id=>"4ce24c423321e88ac5000015", :secret=>"foobar", :display_name=>"Rock Star")
+          Server.register(:id=>"5000015", :secret=>"foobar", :display_name=>"MyApp", 
+                          :link => "http://foo.bar")
+          @client = Server.register(:id=>"5000015", :secret=>"foobar", 
+                                    :display_name=>"Rock Star", :link => "http://foo.baz")
         end
 
         should "not create new client" do
-          assert_equal 2, Server::Client.collection.count
+          assert_equal 2, Server::Client.count
         end
 
         should "should not change the client identifier" do
-          assert_equal "4ce24c423321e88ac5000015", @client.id.to_s
+          assert_equal "5000015", @client.id.to_s
         end
 
         should "should not change the client secret" do
@@ -120,12 +125,12 @@ class ServerTest < Test::Unit::TestCase
 
       context "secret mismatch" do
         setup do
-          Server.register(:id=>"4ce24c423321e88ac5000015", :secret=>"foobar", :display_name=>"MyApp")
+          Server.register(:id=>"5000015", :secret=>"foobar", :display_name=>"MyApp", :link => "http://foo.bar/")
         end
 
         should "raise error" do
           assert_raises RuntimeError do
-            Server.register(:id=>"4ce24c423321e88ac5000015", :secret=>"wrong", :display_name=>"MyApp")
+            Server.register(:id=>"5000015", :secret=>"wrong", :display_name=>"MyApp_2", :link => "http://foo.baz/")
           end
         end
       end
@@ -136,7 +141,7 @@ class ServerTest < Test::Unit::TestCase
   
   context "access_grant" do
     setup do
-      code = Server.access_grant("Batman", client.id, %w{read})
+      code = Server.access_grant("Batman", client.id, "read")
       basic_authorize client.id, client.secret
       post "/oauth/access_token", :scope=>"read", :grant_type=>"authorization_code", :code=>code, :redirect_uri=>client.redirect_uri
       @token = JSON.parse(last_response.body)["access_token"]
@@ -151,7 +156,7 @@ class ServerTest < Test::Unit::TestCase
     end
 
     should "resolve into access token with grant scope" do
-      assert_equal %w{read}, Server.get_access_token(@token).scope
+      assert_equal "read", Server.get_access_token(@token).scope
     end
 
     should "resolve into access token with grant client" do
@@ -162,7 +167,7 @@ class ServerTest < Test::Unit::TestCase
       setup { @code = Server.access_grant("Batman", client.id) }
 
       should "pick client scope" do
-        assert_equal %w{oauth-admin read write}, Server::AccessGrant.from_code(@code).scope
+        assert_equal "read write oauth-admin", Server::AccessGrant.from_code(@code).scope
       end
     end
 
@@ -214,7 +219,7 @@ class ServerTest < Test::Unit::TestCase
 
 
   context "get_access_token" do
-    setup { @token = Server.token_for("Batman", client.id, %w{read}) }
+    setup { @token = Server.token_for("Batman", client.id, "read") }
     should "return authorization request" do
       assert_equal @token, Server.get_access_token(@token).token
     end
@@ -227,14 +232,14 @@ class ServerTest < Test::Unit::TestCase
       setup { @token = Server.token_for("Batman", client.id) }
 
       should "pick client scope" do
-        assert_equal %w{oauth-admin read write}, Server::AccessToken.from_token(@token).scope
+        assert_equal "read write oauth-admin", Server::AccessToken.from_token(@token).scope
       end
     end
   end
 
 
   context "token_for" do
-    setup { @token = Server.token_for("Batman", client.id, %w{read write}) }
+    setup { @token = Server.token_for("Batman", client.id, "read write") }
 
     should "return access token" do
       assert_match /[0-9a-f]{32}/, @token
@@ -249,33 +254,33 @@ class ServerTest < Test::Unit::TestCase
     end
 
     should "associate token with scope" do
-      assert_equal %w{read write}, Server.get_access_token(@token).scope
+      assert_equal "read write", Server.get_access_token(@token).scope
     end
 
     should "return same token for same parameters" do
-      assert_equal @token, Server.token_for("Batman", client.id, %w{write read})
+      assert_equal @token, Server.token_for("Batman", client.id, "read write")
     end
 
     should "return different token for different identity" do
-      assert @token != Server.token_for("Superman", client.id, %w{read write})
+      assert @token != Server.token_for("Superman", client.id, "read write")
     end
 
     should "return different token for different client" do
-      client = Server.register(:display_name=>"MyApp")
-      assert @token != Server.token_for("Batman", client.id, %w{read write})
+      client = Server.register(:display_name=>"MyApp", :link => "http://foo.bar/")
+      assert @token != Server.token_for("Batman", client.id, "read write")
     end
 
     should "return different token for different scope" do
-      assert @token != Server.token_for("Batman", client.id, %w{read})
+      assert @token != Server.token_for("Batman", client.id, "read")
     end
   end
 
 
   context "list access tokens" do
     setup do
-      @one = Server.token_for("Batman", client.id, %w{read})
-      @two = Server.token_for("Superman", client.id, %w{read})
-      @three = Server.token_for("Batman", client.id, %w{write})
+      @one = Server.token_for("Batman", client.id, "read")
+      @two = Server.token_for("Superman", client.id, "read")
+      @three = Server.token_for("Batman", client.id, "write")
     end
 
     should "return all tokens for identity" do

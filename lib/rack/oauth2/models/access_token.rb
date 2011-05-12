@@ -32,7 +32,8 @@ module Rack
         def self.get_token_for(identity, client, scope)
           raise ArgumentError, "Identity must be String or Integer" unless String === identity || Integer === identity
 
-          token = first(:conditions => {:identity=>identity, :scope=>scope, :client_id=>client.id, :revoked=>nil})
+          token = AccessToken.where({ :identity => identity, :scope => scope, 
+            :client_id => client.id, :revoked => nil }).first
 
           token ||= begin
             attributes = {
@@ -53,7 +54,7 @@ module Rack
 
         # Find all AccessTokens for an identity.
         def self.from_identity(identity)
-          all(:condition => {:identity => identity})
+          where({:identity => identity})
         end
 
         # Returns all access tokens for a given client, Use limit and offset
@@ -62,32 +63,7 @@ module Rack
           all(:conditions => {:client_id => client.id}, :offset => offset, :limit => limit, :order => :created_at)
         end
 
-        # Returns count of access tokens.
-        #
-        # @param [Hash] filter Count only a subset of access tokens
-        # @option filter [Integer] days Only count that many days (since now)
-        # @option filter [Boolean] revoked Only count revoked (true) or non-revoked (false) tokens; count all tokens if nil
-        # @option filter [String, ObjectId] client_id Only tokens grant to this client
-        def self.count(filter = {})
-          conditions = []
-          if filter[:days]
-            now = Time.now
-            start_time = now - (filter[:days] * 86400)
-
-            key = filter[:revoked] ? 'revoked' : 'created_at'
-            conditions = ["#{key} > ? AND #{key} <= ?", start_time, now]
-          elsif filter.has_key?(:revoked)
-            conditions = ["revoked " + (filter[:revoked] ? "IS NOT NULL" : "IS NULL")]
-          end
-
-          if filter.has_key?(:client_id)
-            conditions.first = conditions.empty? ? "client_id = ?" : " AND client_id = ?"
-            conditions << filter[:client_id]
-          end
-
-          super(:conditions => conditions)
-        end
-
+        
         # def self.historical(filter = {})
         #   # days = filter[:days] || 60
         #   # select = { :$gt=> { :created_at=>Time.now - 86400 * days } }

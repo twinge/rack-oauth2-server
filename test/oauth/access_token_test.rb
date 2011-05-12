@@ -42,16 +42,28 @@ class AccessTokenTest < Test::Unit::TestCase
   def setup
     super
     # Get authorization code.
-    params = { :redirect_uri=>client.redirect_uri, :client_id=>client.id, :client_secret=>client.secret, :response_type=>"code",
-               :scope=>"read write", :state=>"bring this back" }
+    params = { :redirect_uri => client.redirect_uri, :client_id => client.id, 
+              :client_secret => client.secret, :response_type => "code",
+              :scope => "read write", :state => "bring this back" }
     get "/oauth/authorize?" + Rack::Utils.build_query(params)
-    get last_response["Location"] if last_response.status == 303
+    # puts "Response from attempt to authorize is: " + last_response.inspect
+    if last_response.status == 303
+      auth_uri = last_response.headers["Location"].gsub("http://example.org","")
+    end
+    get auth_uri
     authorization = last_response.body[/authorization:\s*(\S+)/, 1]
-    post "/oauth/grant", :authorization=>authorization
-    code = Rack::Utils.parse_query(URI.parse(last_response["Location"]).query)["code"]
+    
+    # puts "Response from auth token get is:" + last_response.inspect
+    
+    post "/oauth/grant", :authorization => authorization
+    code = Rack::Utils.parse_query(URI.parse(last_response.headers["Location"]).query)["code"]
+
     # Get access token
     basic_authorize client.id, client.secret
-    post "/oauth/access_token", :scope=>"read write", :grant_type=>"authorization_code", :code=>code, :redirect_uri=>client.redirect_uri
+    post "/oauth/access_token", :scope=>"read write", :grant_type => "authorization_code", :code => code, :redirect_uri => client.redirect_uri
+    
+    # puts "Response from token request is: " + last_response.inspect
+    
     @token = JSON.parse(last_response.body)["access_token"]
     header "Authorization", nil
   end

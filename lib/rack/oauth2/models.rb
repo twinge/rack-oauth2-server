@@ -6,10 +6,6 @@ require "rack/oauth2/server/utils"
 module Rack
   module OAuth2
     class Server
-      # class << self
-      #   # unused!
-      #   attr_accessor :database
-      # end
 
       # Long, random and hexy.
       def self.secure_random

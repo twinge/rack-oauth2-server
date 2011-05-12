@@ -129,7 +129,7 @@ class Test::Unit::TestCase
     if !Server::AuthRequest.table_exists?
       ActiveRecord::Base.connection.create_table(:auth_requests) do |t|
         t.string :code
-        t.string :client_id
+        t.integer :client_id
         t.string :scope
         t.string :redirect_uri
         t.string :state
@@ -147,7 +147,7 @@ class Test::Unit::TestCase
         t.string :code
         t.string :access_token
         t.string :identity
-        t.string :client_id
+        t.integer :client_id
         t.string :scope
         t.datetime :granted_at
         t.datetime :created_at
@@ -163,7 +163,7 @@ class Test::Unit::TestCase
       ActiveRecord::Base.connection.create_table(:access_tokens) do |t|
         t.string :code
         t.string :identity
-        t.string :client_id
+        t.integer :client_id
         t.string :redirect_uri
         t.string :scope
         t.datetime :created_at
@@ -172,6 +172,8 @@ class Test::Unit::TestCase
         t.datetime :expires_at
         t.string :access_token
         t.datetime :revoked
+        t.datetime :last_access
+        t.datetime :prev_access
       end
     end
     Server::Admin.scope = %{read write}

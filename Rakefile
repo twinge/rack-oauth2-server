@@ -44,7 +44,7 @@ end
 
 desc "Run all tests"
 Rake::TestTask.new do |task|
-  task.test_files = FileList['test/**/access_grant_test.rb']
+  task.test_files = FileList['test/**/*_test.rb']
   if Rake.application.options.trace
     #task.warning = true
     task.verbose = true

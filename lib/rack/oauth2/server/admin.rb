@@ -131,8 +131,9 @@ module Rack
           json = { :list=>Server::Client.all.map { |client| client_as_json(client) },
                    :scope=> settings.scope,
                    :history=>"#{request.script_name}/api/clients/history",
-                   :tokens=>{ :total=>Server::AccessToken.count, :week=>Server::AccessToken.count(:days=>7),
-                              :revoked=>Server::AccessToken.count(:days=>7, :revoked=>true) } }
+                   :tokens=>{ :total => Server::AccessToken.count, 
+                      :week => Server::AccessToken.where(:created_at => ((Time.now - 7.days)..Time.now)).count,
+                      :revoked => Server::AccessToken.where(:revoked => ((Time.now - 7.days)..Time.now)).count } }
           json.to_json
         end
 
@@ -157,16 +158,16 @@ module Rack
 
           page = [params[:page].to_i, 1].max
           offset = (page - 1) * settings.tokens_per_page
-          total = Server::AccessToken.count(:client_id=>client.id)
+          total = Server::AccessToken.where(:client_id => client.id).count
           tokens = Server::AccessToken.for_client(params[:id], offset, settings.tokens_per_page)
           json[:tokens] = { :list=>tokens.map { |token| token_as_json(token) } }
           json[:tokens][:total] = total
           json[:tokens][:page] = page
           json[:tokens][:next] = "#{request.script_name}/client/#{params[:id]}?page=#{page + 1}" if total > page * settings.tokens_per_page
           json[:tokens][:previous] = "#{request.script_name}/client/#{params[:id]}?page=#{page - 1}" if page > 1
-          json[:tokens][:total] = Server::AccessToken.count(:client_id=>client.id)
-          json[:tokens][:week] = Server::AccessToken.count(:client_id=>client.id, :days=>7)
-          json[:tokens][:revoked] = Server::AccessToken.count(:client_id=>client.id, :days=>7, :revoked=>true)
+          json[:tokens][:total] = Server::AccessToken.where(:client_id => client.id).count
+          json[:tokens][:week] = Server::AccessToken.where(:client_id => client.id, :created_at => ((Time.now - 7.days)..Time.now)).count
+          json[:tokens][:revoked] = Server::AccessToken.where(:client_id => client.id, :revoked => ((Time.now - 7.days)..Time.now)).count
 
           json.to_json
         end

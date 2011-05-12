@@ -85,7 +85,7 @@ class AdminApiTest < Test::Unit::TestCase
         assert Array === json["list"]
       end
       should "return known scope" do
-        assert_equal %w{read write}, json["scope"]
+        assert_equal "read write", json["scope"]
       end
     end
 
@@ -124,7 +124,7 @@ class AdminApiTest < Test::Unit::TestCase
         assert_equal ["/oauth/admin/api/client", client.id, "revoke"].join("/"), @first["revoke"]
       end
       should "provide scope for client" do
-        assert_equal %w{oauth-admin read write}, @first["scope"]
+        assert_equal "read write oauth-admin", @first["scope"]
       end
       should "tell if not revoked" do
         assert @first["revoked"].nil?

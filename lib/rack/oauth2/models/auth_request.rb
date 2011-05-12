@@ -22,7 +22,7 @@ module Rack
             :state => state
           }
 
-          super(attributes)
+          AuthRequest.create!(attributes)
         end
 
         # Grant access to the specified identity.
