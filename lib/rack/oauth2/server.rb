@@ -400,15 +400,17 @@ module Rack
         else
           client_id, client_secret = request.GET.values_at("client_id", "client_secret")
         end
-        begin
-          client = self.class.get_client(client_id)
-        rescue ActiveRecord::RecordNotFound
-          raise InvalidClientError
-        end
+        
+        client = self.class.get_client(client_id)
+        
+        raise InvalidClientError if client.nil?
+        
         unless options[:dont_authenticate]
           raise InvalidClientError unless client.secret == client_secret
         end
+        
         raise InvalidClientError if client.revoked
+        
         return client
       end
 

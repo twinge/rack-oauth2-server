@@ -10,13 +10,13 @@ class AuthorizationTest < Test::Unit::TestCase
         assert_equal 302, last_response.status
       end
       should "redirect back to redirect_uri" do
-        assert_equal URI.parse(last_response["Location"]).host, "uberclient.dot"
+        assert_equal URI.parse(last_response.headers["Location"]).host, "uberclient.dot"
       end
       should "redirect with error code #{error}" do
-        assert_equal error.to_s, Rack::Utils.parse_query(URI.parse(last_response["Location"]).query)["error"]
+        assert_equal error.to_s, Rack::Utils.parse_query(URI.parse(last_response.headers["Location"]).query)["error"]
       end
       should "redirect with state parameter" do
-        assert_equal "bring this back", Rack::Utils.parse_query(URI.parse(last_response["Location"]).query)["state"]
+        assert_equal "bring this back", Rack::Utils.parse_query(URI.parse(last_response.headers["Location"]).query)["state"]
       end
     end
 
@@ -36,13 +36,12 @@ class AuthorizationTest < Test::Unit::TestCase
 
   def setup
     super
-    @params = { :redirect_uri=>client.redirect_uri, :client_id=>client.id, :client_secret=>client.secret, :response_type=>"code",
-                :scope=>"read write", :state=>"bring this back" }
+    @params = { :redirect_uri => client.redirect_uri, :client_id => client.id, :client_secret => client.secret, :response_type => "code", :scope => "read write", :state => "bring this back" }
   end
 
   def request_authorization(changes = nil)
     get "/oauth/authorize?" + Rack::Utils.build_query(@params.merge(changes || {}))
-    get last_response["Location"] if last_response.status == 303
+    get last_response.headers["Location"] if last_response.status == 303
   end
 
   def authorization
@@ -294,7 +293,7 @@ class AuthorizationTest < Test::Unit::TestCase
       client_to_update.save
       request_authorization :redirect_uri=>"http://uberclient.dot/oz"
     end
-    should_ask_user_for_authorization
+    should_redirect_with_error :redirect_uri_mismatch
   end
 
 end
