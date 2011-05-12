@@ -60,7 +60,7 @@ module Rack
         # Returns all access tokens for a given client, Use limit and offset
         # to return a subset of tokens, sorted by creation date.
         def self.for_client(client_id, offset = 0, limit = 100)
-          all(:conditions => {:client_id => client.id}, :offset => offset, :limit => limit, :order => :created_at)
+          AccessToken.where(:client_id => client_id).offset(offset).limit(limit).order(:created_at)
         end
 
         

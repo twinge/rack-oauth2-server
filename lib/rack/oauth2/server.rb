@@ -22,7 +22,11 @@ module Rack
         # oauth.authorization)
         # @return [AuthReqeust]
         def get_auth_request(authorization)
-          AuthRequest.find_by_code(authorization)
+          begin
+            AuthRequest.find(authorization)
+          rescue ActiveRecord::RecordNotFound
+            return nil
+          end
         end
 
         # Returns Client from client identifier.
@@ -72,7 +76,8 @@ module Rack
         def register(args)
           if args[:id] && args[:secret] && (client = get_client(args[:id]))
             fail "Client secret does not match" unless client.secret == args[:secret]
-            client.update args
+            client.update_attributes(args)
+            return client
           else
             Client.create!(args)
           end

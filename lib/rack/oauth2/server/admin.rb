@@ -233,7 +233,7 @@ module Rack
               :url=>"#{request.script_name}/api/client/#{client.id}",
               :revoke=>"#{request.script_name}/api/client/#{client.id}/revoke",
               :history=>"#{request.script_name}/api/client/#{client.id}/history",
-              :created=>client.created_at, :revoked=>client.revoked }
+              :created=>client.created_at.to_i, :revoked => client.revoked.nil? ? nil : client.revoked.to_i }
           end
 
           def token_as_json(token)
