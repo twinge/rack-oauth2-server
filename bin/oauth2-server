@@ -1,7 +1,9 @@
 #!/usr/bin/env ruby
 $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
+
+#need to require active_record before we read through all of the models
+require "active_record"
 require "rack/oauth2/server"
-require "activerecord"
 require "uri"
 
 # this is a weird way to shorten the namespace
