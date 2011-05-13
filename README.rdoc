@@ -5,8 +5,9 @@ strangers into your app, and OAuth 2.0 is the new awesome.
 
 http://tools.ietf.org/html/draft-ietf-oauth-v2-10
 
-
 == Adding OAuth 2.0 To Your Application
+
+If you are running Rails 3 or another Rack server and using ActiveRecord 3.0.x, this code _may_ work for you. Please submit issues and pull requests when you encounter problems.
 
 === Step 1: Setup Your Database
 
@@ -35,23 +36,6 @@ Configure Rack::OAuth2::Server by adding the following to your +config/environme
     end
   end
   
-==== Rails 2.3
-
-Rack::OAuth2::Server automatically adds itself as middleware
-when required, but you do need to configure it from within
-+config/environment.rb+ (or one of the specific environment files). For example:
-
-  Rails::Initializer.run do |config|
-    . . .
-    config.after_initialize do
-      config.oauth.database = Mongo::Connection.new["my_db"]
-      config.oauth.authenticator = lambda do |username, password|
-        user = User.find(username)
-        user if user && user.authenticated?(password)
-      end
-    end
-  end
-
 ==== Sinatra and Padrino
 
 First require +rack/oauth2/sinatra+ and register
@@ -382,18 +366,7 @@ the Web admin, by granting them access to the +oauth-admin+ scope. For example:
 Make sure you do that, or you'll allow anyone access to the OAuth Web admin.
 
 Next, mount the OAuth Web admin as part of your application, and feed it the
-client ID/secret. For example, for Rails 2.3.x add this to
-+config/environment.rb+:
-
-  Rails::Initializer.run do |config|
-    . . .
-    config.after_initialize do
-      config.middleware.use Rack::OAuth2::Server::Admin.mount
-      Rack::OAuth2::Server::Admin.set :client_id, "4dca20453e4859cb000007"
-      Rack::OAuth2::Server::Admin.set :client_secret, "981fa734e110496fcf667cbf52fbaf03"
-      Rack::OAuth2::Server::Admin.set :scope, %w{read write}
-    end
-  end
+client ID/secret. 
 
 For Rails 3.0.x, add this to you +config/application.rb+:
 
@@ -610,9 +583,11 @@ access tokens can also expire, but we don't support expiration at the moment)
 
 == Credits
 
-Rack::OAuth2::Server was written to provide authorization/authentication for
+The original Rack::OAuth2::Server was written to provide authorization/authentication for
 the new Flowtown API[http://developer.flowtown.com]. Thanks to
 Flowtown[http://flowtown.com] for making it happen and allowing it to be open
-sourced. 
+sourced.
+
+Thanks to Tony Pitale[https://github.com/tpitale] for forking the original project and beginning the process of replacing Mongoid persistence with ActiveRecord persistence.
 
 Rack::OAuth2::Server is available under the MIT license.

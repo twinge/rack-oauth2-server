@@ -11,10 +11,10 @@ $: << File.dirname(__FILE__) + "/../lib"
 $: << File.expand_path(File.dirname(__FILE__) + "/..")
 require 'sqlite3'
 require "active_record"
+require "sinatra/base"
 require "rack/oauth2/server"
 require "rack/oauth2/server/admin"
 require "rack/oauth2/models"
-
 
 
 ENV["RACK_ENV"] = "test"
@@ -39,7 +39,6 @@ end
 case FRAMEWORK
 when "sinatra", nil
 
-  #require "sinatra/base"
   puts "Testing with Sinatra #{Sinatra::VERSION}"
   require File.dirname(__FILE__) + "/sinatra/my_app"
   
@@ -74,24 +73,6 @@ when "rails"
     class Test::Unit::TestCase
       def app
         ::Rails.application
-      end
-
-      def config
-        ::Rails.configuration.oauth
-      end
-    end
-
-  else
-    # Rails 2.x
-    RAILS_ROOT = File.dirname(__FILE__) + "/rails2"
-    require "initializer"
-    require "action_controller"
-    require File.dirname(__FILE__) + "/rails2/config/environment"
-    puts "Testing with Rails #{Rails.version}"
-  
-    class Test::Unit::TestCase
-      def app
-        ActionController::Dispatcher.new
       end
 
       def config

@@ -32,7 +32,7 @@ module Rack
         def self.get_token_for(identity, client, scope)
           raise ArgumentError, "Identity must be String or Integer" unless String === identity || Integer === identity
 
-          token = AccessToken.where({ :identity => identity, :scope => scope, 
+          token = where({ :identity => identity, :scope => scope, 
             :client_id => client.id, :revoked => nil }).first
 
           token ||= begin

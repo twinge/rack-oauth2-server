@@ -15,4 +15,5 @@ group :test do
   gem "shoulda"
   gem "timecop"
   gem "sqlite3"
+  gem "sinatra"
 end

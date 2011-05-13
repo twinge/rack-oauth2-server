@@ -404,13 +404,11 @@ module Rack
         
         client = self.class.get_client(client_id)
         
-        raise InvalidClientError if client.nil?
+        raise InvalidClientError if client.nil? || client.revoked
         
         unless options[:dont_authenticate]
           raise InvalidClientError unless client.secret == client_secret
         end
-        
-        raise InvalidClientError if client.revoked
         
         return client
       end

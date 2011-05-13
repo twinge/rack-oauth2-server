@@ -57,18 +57,10 @@ Rake::TestTask.new do |task|
 end
 
 namespace :test do
-  task :all=>["test:sinatra", "test:rails2", "test:rails3"]
+  task :all=>["test:sinatra", "test:rails3"]
   desc "Run all tests against Sinatra"
   task :sinatra do
     sh "rake test FRAMEWORK=sinatra"
-  end
-  desc "Run all tests against Rails"
-  task :rails do
-    sh "rake test FRAMEWORK=rails"
-  end
-  desc "Run all tests against Rails 2.3.x"
-  task :rails2 do
-    sh "env BUNDLE_GEMFILE=Rails2 rake test FRAMEWORK=rails"
   end
   desc "Run all tests against Rails 3.x"
   task :rails3 do
