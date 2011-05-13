@@ -10,7 +10,7 @@ class ServerTest < Test::Unit::TestCase
   context "get_auth_request" do
     setup { @request = Server::AuthRequest.create(client, client.scope, client.redirect_uri, "token", nil) }
     should "return authorization request" do
-      assert_equal @request.id, Server.get_auth_request(@request.id).id
+      assert_equal @request.id, Server.get_auth_request(@request.code).id
     end
 
     should "return nil if no request found" do
@@ -100,18 +100,14 @@ class ServerTest < Test::Unit::TestCase
 
       context "existing client" do
         setup do
-          Server.register(:id=>"5000015", :secret=>"foobar", :display_name=>"MyApp", 
+          @first = Server.register(:secret => "foobar", :display_name => "MyApp", 
                           :link => "http://foo.bar")
-          @client = Server.register(:id=>"5000015", :secret=>"foobar", 
-                                    :display_name=>"Rock Star", :link => "http://foo.baz")
+          @client = Server.register(:id => @first.id, :secret => "foobar", 
+                                    :display_name => "Rock Star", :link => "http://foo.baz")
         end
 
         should "not create new client" do
           assert_equal 2, Server::Client.count
-        end
-
-        should "should not change the client identifier" do
-          assert_equal "5000015", @client.id.to_s
         end
 
         should "should not change the client secret" do
@@ -125,12 +121,12 @@ class ServerTest < Test::Unit::TestCase
 
       context "secret mismatch" do
         setup do
-          Server.register(:id=>"5000015", :secret=>"foobar", :display_name=>"MyApp", :link => "http://foo.bar/")
+          @first = Server.register(:secret=>"foobar", :display_name=>"MyApp", :link => "http://foo.bar/")
         end
 
         should "raise error" do
           assert_raises RuntimeError do
-            Server.register(:id=>"5000015", :secret=>"wrong", :display_name=>"MyApp_2", :link => "http://foo.baz/")
+            Server.register(:id => @first.id, :secret=>"wrong", :display_name=>"MyApp_2", :link => "http://foo.baz/")
           end
         end
       end
