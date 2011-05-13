@@ -15,7 +15,7 @@ The authorization server needs to keep track of clients, authorization
 requests, access grants and access tokens. That could only mean one thing: a
 database.
 
-An example of the migration you will want to perform is here: https://gist.github.com/33f732bd9bab1413cd85
+An example of the migration you will want to perform is in sample_migration.rb at the root of the project.
 
 === Step 2: Use The Server
 
@@ -297,29 +297,15 @@ Or you can register clients using the Web-based OAuth console, see below.
 
 Programatically, registering a new client is as simple as:
 
-  $ ./script/console
-  Loading development environment (Rails 2.3.8)
-  > Rack::OAuth2::Server.register(:display_name=>"UberClient",
+  $ rails console
+  > client = Rack::OAuth2::Server.register(
+     :display_name=>"UberClient",
      :link=>"http://example.com/",
      :image_url=>"http://farm5.static.flickr.com/4122/4890273282_58f7c345f4.jpg",
-     :scope=>%{read write},
+     :scope=>"read write",
      :redirect_uri=>"http://example.com/oauth/callback")
   > puts "Your client identifier: #{client.id}"
   > puts "Your client secret: #{client.secret}"
-
-You may want your application to register its own client application, always
-with the same client ID and secret, which are also stored in a configuration
-file. For example, your +db/seed.rb+ may contain:
-
-  oauth2 = YAML.load_file(Rails.root + "config/oauth2.yml")
-  Rack::OAuth2::Server.register(id: oauth2["client_id"], secret: oauth2["client_secret"],
-    display_name: "UberClient", link: "http://example.com",
-    redirect_uri: "http://example.com/oauth/callback", scope: oauth2["scope"].split)
-
-When you call +register+ with +id+ and +secret+ parameters it either registers a
-new client with these specific ID and sceret, or if a client already exists,
-updates its other properties.
-
 
 === Step 6: Pimp Your API
 
