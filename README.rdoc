@@ -21,7 +21,7 @@ An example of the migration you will want to perform is in sample_migration.rb a
 
 ==== Rails 3.0
 
-Configure Rack::OAuth2::Server by adding the following to your +config/environment.rb+ (or one of the specific environment files). For example:
+Configure Rack::OAuth2::Server by adding the following to your +config/application.rb+ (or one of the specific environment files). For example:
 
   require "rack/oauth2/server/railtie"
 
@@ -128,6 +128,7 @@ In Rails, the entire flow would look something like this:
       if current_user
         render :action=>"authorize"
       else
+        # send the user to your application's login route
         redirect_to :action=>"login", :authorization=>oauth.authorization
       end
     end
@@ -167,7 +168,7 @@ In Sinatra/Padrino, it would look something like this:
 The view would look something like this:
 
   <h2>The application <% link_to h(oauth.client.display_name), oauth.client.link %>
-    is requesting to <%= oauth.scope.to_sentence %> your account.</h2>
+    is requesting to <%= oauth.scope %> your account.</h2>
   <form action="/oauth/grant">
     <button>Grant</button>
     <input type="hidden" name="authorization" value="<%= oauth.authorization %>">

@@ -31,7 +31,6 @@ when "list"
 
 when "register"
 
-  # fail "No database. Use the --db option to tell us which database to use" unless Server.database
   begin
     print "Application name:\t"
     display_name = $stdin.gets
@@ -52,14 +51,13 @@ when "register"
 
 when "setup"
 
-  # fail "No database. Use the --db option to tell us which database to use" unless Server.database
   puts "Where would you mount the Web console? This is a URL that must end with /admin,"
   puts "for example, http://example.com/oauth/admin"
   print ": "
   uri = URI.parse($stdin.gets)
   begin
     uri.normalize!
-    fail "No an HTTP/S URL" unless uri.absolute? && %{http https}.include?(uri.scheme)
+    fail "Not an HTTP/S URL" unless uri.absolute? && %{http https}.include?(uri.scheme)
     fail "Path must end with /admin" unless uri.path[/\/admin$/]
     client = Server::Client.create(:display_name=>"OAuth Console", :link=>uri.to_s, :image_url=>"#{uri.to_s}/images/oauth-2.png",
                              :redirect_uri=>uri.to_s, :scope=>"oauth-admin")
@@ -82,14 +80,22 @@ For example:
 
 Rails 3.x, add the following to config/application.rb:
 
+  require "rack/oauth2/server/admin"
+
   config.after_initialize do
     Rack::OAuth2::Server::Admin.set :client_id, "#{client.id}"
     Rack::OAuth2::Server::Admin.set :client_secret, "#{client.secret}"
   end
 
-And add the follownig to config/routes.rb:
+And add the following to config/routes.rb:
 
-  mount Rack::OAuth2::Server::Admin=>"/oauth/admin"
+  require "rack/oauth2/server/admin"
+
+  mount Rack::OAuth2::Server::Admin, :at => "/oauth/admin"
+  
+  match 'oauth/authorize' => 'oauth#authorize'
+  match 'oauth/grant' => 'oauth#grant'
+  match 'oauth/deny' => 'oauth#deny'
 
 Sinatra, Padrino and other Rack applications, mount the console:
 
