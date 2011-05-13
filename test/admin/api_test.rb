@@ -127,7 +127,6 @@ class AdminApiTest < Test::Unit::TestCase
         assert_equal "read write oauth-admin", @first["scope"]
       end
       should "tell if not revoked" do
-        p "json for first client is: " + @first.inspect
         assert @first["revoked"].nil?
       end
     end

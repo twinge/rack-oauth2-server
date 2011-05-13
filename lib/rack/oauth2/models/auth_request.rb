@@ -7,13 +7,6 @@ module Rack
       # request to grant/deny redirect.
       class AuthRequest < ActiveRecord::Base
         belongs_to :client, :class_name => 'Rack::OAuth2::Server::Client'
-        
-        validates_presence_of :client_id, :scope
-        before_validation :assign_code, :on => :create
-        
-        def assign_code
-          self.code = Server.secure_random
-        end
 
         # Create a new authorization request. This holds state, so in addition
         # to client ID and scope, we need to know the URL to redirect back to
@@ -21,6 +14,7 @@ module Rack
         def self.create(client, scope, redirect_uri, response_type, state)
 
           attributes = {
+            :code => Server.secure_random,
             :client_id => client.id,
             :scope => scope,
             :redirect_uri => (client.redirect_uri || redirect_uri),
@@ -30,8 +24,6 @@ module Rack
 
           AuthRequest.create!(attributes)
         end
-        
-        
 
         # Grant access to the specified identity.
         def grant!(identity)
