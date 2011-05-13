@@ -291,7 +291,7 @@ the client's ID/secret.
 
 You can register clients using the command line tool +oauth2-server+:
 
-  $ oauth2-server register --db my_db
+  $ oauth2-server register --db db/development.sqlite3
 
 Or you can register clients using the Web-based OAuth console, see below.
 
@@ -333,9 +333,9 @@ with the scope +oauth-scope+ and redirect_uri that points to where you plan the
 Web admin to live. This URL must end with "/admin", for example,
 "http://example.com/oauth/admin".
 
-The easiest way to do this is to run the +oauth2-sever+ command line tool:
+The easiest way to do this is to run the +oauth2-server+ command line tool:
 
-  $ oauth2-server setup --db my_db
+  $ oauth2-server setup --db db/development.sqlite3
 
 Next, in your application, make sure to ONLY AUTHORIZE ADMINISTRATORS to access
 the Web admin, by granting them access to the +oauth-admin+ scope. For example:

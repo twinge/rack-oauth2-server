@@ -12,6 +12,12 @@ if (i = ARGV.index("--port") || ARGV.index("-p")) && ARGV[i+1]
   ARGV[i,2] = []
 end
 
+if (i = ARGV.index("--db")) && ARGV[i+1]
+  db = ARGV[i+1]
+  ActiveRecord::Base.establish_connection(:adapter => 'sqlite3', :database => db)
+end
+  
+
 
 case ARGV[0]
 when "list"
@@ -72,14 +78,6 @@ For example:
   before_filter do
     # Only admins allowed to authorize the scope oauth-admin
     head oauth.deny! if oauth.scope.include?("oauth-admin") && !current_user.admin?
-  end
-
-Rails 2.x, add the following to config/environment.rb:
-
-  config.after_initialize do
-    config.middleware.use Rack::OAuth2::Server::Admin.mount "#{uri.path}"
-    Rack::OAuth2::Server::Admin.set :client_id, "#{client.id}"
-    Rack::OAuth2::Server::Admin.set :client_secret, "#{client.secret}"
   end
 
 Rails 3.x, add the following to config/application.rb:
@@ -154,26 +152,6 @@ when "practice"
     map("/oauth/admin") { run Server::Admin.new }
   end.start
 
-# when "migrate"
-# 
-#   # fail "No database. Use the --db option to tell us which database to use" unless Server.database
-#   puts "Set all clients to this scope (can change later by calling Client.register):"
-#   print ": "
-#   scope = $stdin.gets.strip.split
-#   puts "Updating Client scope to #{scope.join(", ")}"
-#   Server::Client.collection.find({ :scope=>{ :$exists=>false } }, :fields=>[]).each do |client|
-#     update = { :scope=>scope,
-#       :tokens_granted=>Server::AccessToken.count(:client_id=>client["_id"]),
-#       :tokens_revoked=>Server::AccessToken.count(:client_id=>client["_id"], :revoked=>true) }
-#     Server::Client.collection.update({ :_id=>client["_id"] }, { :$set=>update })
-#   end
-#   [Server::AccessToken, Server::AccessGrant, Server::AuthRequest].each do |mod|
-#     puts "Updating #{mod.name} scope from string to array"
-#     mod.collection.find({ :scope=>{ :$type=>2 } }, :fields=>[]).each do |token|
-#       scope = token["scope"].split
-#       mod.collection.update({ :_id=>token["_id"] }, { :$set=>{ :scope=>scope } })
-#     end
-#   end
 else
 
   print <<-TEXT
@@ -182,13 +160,12 @@ Version #{Server::VERSION}
 
 Commands:
   list            Lists all active clients
-  migrate         Run this when migrating from 1.x to 2.x
-  practice        Runs a dummy OAuth 2.0 server, use this to test your OAuth 2.0 client
   register        Register a new client application
   setup           Create new admin account and help you setup the OAuth Web console
-
+  practice        Runs a dummy OAuth 2.0 server, use this to test your OAuth 2.0 client
+  
 Options:
-  --db database   Database name or connection URL
+  --db path       Path to sqlite db file, for example db/development.sqlite3
   --port number   Port to run admin server, detault is 8080
   TEXT
   exit -1
