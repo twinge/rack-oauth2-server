@@ -64,19 +64,20 @@ module Rack
         end
 
         
-        # def self.historical(filter = {})
-        #   # days = filter[:days] || 60
-        #   # select = { :$gt=> { :created_at=>Time.now - 86400 * days } }
-        #   # select = {}
-        # 
-        #   if filter.has_key?(:client_id)
-        #     conditions << "client_id = ?" << filter[:client_id]
-        #   end
-        # 
-        #   raw = Server::AccessToken.collection.group("function (token) { return { ts: Math.floor(token.created_at / 86400) } }",
-        #     select, { :granted=>0 }, "function (token, state) { state.granted++ }")
-        #   raw.sort { |a, b| a["ts"] - b["ts"] }
-        # end
+        def self.historical(filter = {})
+          days = filter[:days] || 60
+          queryString = "select UNIX_TIMESTAMP(created_at) DIV 86400 AS ts, COUNT(DATE_FORMAT(created_at, '%e')) AS granted FROM access_tokens WHERE created_at BETWEEN DATE_SUB(NOW(), INTERVAL #{days} DAY) AND NOW()"
+          if filter.has_key?(:client_id)
+            queryString +=" AND client_id=#{filter[:client_id]}"
+          end
+          queryString += " GROUP BY ts ORDER BY ts ASC"
+
+          #Json should look like this:  (ts is number of days since Epoch), (granted is how many token were awarded that day)
+          #{"data":[{"ts":15084.0,"granted":1.0},{"ts":15092.0,"granted":1.0},{"ts":15093.0,"granted":1.0},{"ts":15109.0,"granted":1.0},{"ts":15110.0,"granted":1.0}]}
+
+          #not going to try to do this query in Active Record...
+          results = Server::AccessToken.connection.select_all(queryString)
+         end
 
         # Updates the last access timestamp.
         def access!
