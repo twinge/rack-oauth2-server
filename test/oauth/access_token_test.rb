@@ -242,7 +242,31 @@ class AccessTokenTest < Test::Unit::TestCase
       end
     end
   end
-
+  
+  context "substring scope" do
+    context "valid token" do
+      setup do
+        with_token
+        get "/milk"
+      end
+      
+      should "respond with status 403 (Forbidden)" do
+        assert_equal 403, last_response.status
+      end
+      should "respond with authentication method OAuth" do
+        assert_equal "OAuth", last_response["WWW-Authenticate"].split.first
+      end
+      should "respond with realm" do
+        assert_match " realm=\"example.org\"", last_response["WWW-Authenticate"] 
+      end
+      should "respond with error code insufficient_scope" do
+        assert_match " error=\"insufficient_scope\"", last_response["WWW-Authenticate"]
+      end
+      should "respond with scope name" do
+        assert_match " scope=\"rite\"", last_response["WWW-Authenticate"]
+      end
+    end
+  end
 
   context "setting resource" do
     context "authenticated" do

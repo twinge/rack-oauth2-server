@@ -57,6 +57,11 @@ class MyApp < Sinatra::Base
 
   get "/calc" do
   end
+  
+  oauth_required "/milk", :scope => "rite"
+  
+  get "/milk" do
+  end
 
   get "/user" do
     @user

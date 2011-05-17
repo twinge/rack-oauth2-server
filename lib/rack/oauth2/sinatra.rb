@@ -41,7 +41,7 @@ module Rack
         args.each do |path|
           before path do
             if oauth.authenticated?
-              if scope && !oauth.scope.include?(scope)
+              if scope && !oauth.scope.strip.split.include?(scope)
                 halt oauth.no_scope! scope
               end
             else
