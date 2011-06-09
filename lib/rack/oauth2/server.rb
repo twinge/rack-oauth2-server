@@ -199,7 +199,7 @@ module Rack
             begin
               access_token = AccessToken.from_token(token)
               raise InvalidTokenError if access_token.nil? || access_token.revoked
-              raise ExpiredTokenError if access_token.expires_at && access_token.expires_at <= Time.now.
+              raise ExpiredTokenError if access_token.expires_at && access_token.expires_at <= Time.now
               request.env["oauth.access_token"] = token
 
               request.env["oauth.identity"] = access_token.identity
