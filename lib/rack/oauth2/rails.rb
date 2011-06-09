@@ -75,7 +75,7 @@ module Rack
           if scope = options.delete(:scope)
             before_filter options do |controller|
               if controller.oauth.authenticated?
-                if !controller.oauth.scope.include?(scope)
+                if !controller.oauth.scope.strip.split.include?(scope)
                   controller.send :head, controller.oauth.no_scope!(scope)
                 end
               else
