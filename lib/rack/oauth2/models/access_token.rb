@@ -77,7 +77,7 @@ module Rack
 
         # Updates the last access timestamp.
         def access!
-          today = (Time.now.to_i / 3600) * 3600
+          today = Time.now
           if last_access.nil? || last_access < today
             AccessToken.update_all({:last_access=>today, :prev_access=>last_access}, {:code => code})
             reload

@@ -42,7 +42,7 @@ module Rack
         # Deny access.
         # this seems broken … ?
         def deny!
-          # self.authorized_at = Time.now.to_i
+          # self.authorized_at = Time.now
           # self.class.collection.update({ :_id=>id }, { :$set=>{ :authorized_at=>authorized_at } })
         end
 

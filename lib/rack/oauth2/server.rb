@@ -199,7 +199,7 @@ module Rack
             begin
               access_token = AccessToken.from_token(token)
               raise InvalidTokenError if access_token.nil? || access_token.revoked
-              raise ExpiredTokenError if access_token.expires_at && access_token.expires_at <= Time.now.to_i
+              raise ExpiredTokenError if access_token.expires_at && access_token.expires_at <= Time.now.
               request.env["oauth.access_token"] = token
 
               request.env["oauth.identity"] = access_token.identity
@@ -360,7 +360,7 @@ module Rack
             unless client.redirect_uri.nil? || client.redirect_uri.to_s.empty?
               raise InvalidGrantError, "Wrong redirect URI" unless grant.redirect_uri == Utils.parse_redirect_uri(request.POST["redirect_uri"]).to_s
             end
-            raise InvalidGrantError, "This access grant expired" if grant.expires_at && grant.expires_at <= Time.now.to_i
+            raise InvalidGrantError, "This access grant expired" if grant.expires_at && grant.expires_at <= Time.now
             access_token = grant.authorize!
           when "password"
             raise UnsupportedGrantType unless options.authenticator
