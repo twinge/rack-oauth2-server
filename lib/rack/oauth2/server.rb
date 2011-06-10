@@ -290,7 +290,9 @@ module Rack
             # handle the rest.
             auth_request = AuthRequest.create(client, requested_scope, redirect_uri.to_s, response_type, state)
             uri = URI.parse(request.url)
-            uri.query = "authorization=#{auth_request.code}"
+            not_included = ["authorization","code", "client_id", "scope", "redirect_uri", "response_type"]
+            add_to_query = (request.GET).slice!(*not_included)
+            uri.query = Rack::Utils.build_query(add_to_query) + "&authorization=#{auth_request.code}"
             return redirect_to(uri, 303)
           end
         rescue OAuthError=>error
@@ -383,6 +385,7 @@ module Rack
           logger.info "RO2S: Access token #{access_token.token} granted to client #{client.display_name}, identity #{access_token.identity} that requested scope #{access_token.scope}" if logger
           response = { :access_token=>access_token.token }
           response[:scope] = access_token.scope.split(' ').join(',')
+          response[:person] = Person.find_by_personID(access_token.identity).to_hash
           return [200, { "Content-Type"=>"application/json", "Cache-Control"=>"no-store" }, [response.to_json]]
           # 4.3.  Error Response
         rescue OAuthError=>error
