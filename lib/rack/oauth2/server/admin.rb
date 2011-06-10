@@ -237,10 +237,10 @@ module Rack
           end
 
           def token_as_json(token)
-            { :token=>token.token, :identity=>token.identity, :scope=>token.scope, :created=>token.created_at,
-              :expired=>token.expires_at, :revoked=>token.revoked,
+            { :token=>token.token, :identity=>token.identity, :scope=>token.scope, :created=>token.created_at.to_i,
+              :expired=>token.expires_at.to_i, :revoked=>token.revoked,
               :link=>settings.template_url && settings.template_url.gsub("{id}", token.identity),
-              :last_access=>token.last_access,
+              :last_access=>token.last_access.to_i,
               :revoke=>"#{request.script_name}/api/token/#{token.token}/revoke" }
           end
         end

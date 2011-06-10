@@ -48,7 +48,19 @@ module Rack
           AccessGrant.update_all(:revoked=>revoked_at, :client_id=>id)
           AccessToken.update_all(:revoked=>revoked_at, :client_id=>id)
         end
-
+        # 
+        # def update(args)
+        #   fields = [:display_name, :link, :image_url, :notes].inject({}) { |h,k| v = args[k]; h[k] = v if v; h }
+        #   fields[:redirect_uri] = Server::Utils.parse_redirect_uri(args[:redirect_uri]).to_s if args[:redirect_uri]
+        #   fields[:scope] = Server::Utils.normalize_scope(args[:scope])
+        #   logger.info "fields from update:  #{fields.inspect}"
+        # end  
+        # 
+        # def delete(client_id)
+        #   logger.info "client_id to delete:  #{client_id} OR #{self.id}"
+        #   destroy(client_id)
+        # end
+        
       end
     end
   end
