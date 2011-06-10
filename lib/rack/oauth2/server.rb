@@ -284,6 +284,7 @@ module Rack
             raise RedirectUriMismatchError unless client.redirect_uri.nil? || client.redirect_uri == redirect_uri.to_s
             raise UnsupportedResponseTypeError unless options.authorization_types.include?(response_type)
             requested_scope = request.GET["scope"]
+            requested_scope = requested_scope.split(',').join(' ') if request.GET["scope"] 
             raise InvalidScopeError unless (Utils.normalize_scope(requested_scope) - Utils.normalize_scope(client.scope)).empty?
             # Create object to track authorization request and let application
             # handle the rest.
@@ -321,7 +322,7 @@ module Rack
         if auth_request.response_type == "code"
           if auth_request.grant_code
             logger.info "RO2S: Client #{auth_request.client_id} granted access code #{auth_request.grant_code}" if logger
-            params = { :code=>auth_request.grant_code, :scope=>auth_request.scope, :state=>auth_request.state }
+            params = { :code=>auth_request.grant_code, :scope=>auth_request.scope.split(' ').join(','), :state=>auth_request.state }
           else
             logger.info "RO2S: Client #{auth_request.client_id} denied authorization" if logger
             params = { :error=>:access_denied, :state=>auth_request.state }
@@ -331,7 +332,7 @@ module Rack
         else # response type if token
           if auth_request.access_token
             logger.info "RO2S: Client #{auth_request.client_id} granted access token #{auth_request.access_token}" if logger
-            params = { :access_token=>auth_request.access_token, :scope=>auth_request.scope, :state=>auth_request.state }
+            params = { :access_token=>auth_request.access_token, :scope=>auth_request.scope.split(' ').join(','), :state=>auth_request.state }
           else
             logger.info "RO2S: Client #{auth_request.client_id} denied authorization" if logger
             params = { :error=>:access_denied, :state=>auth_request.state }
@@ -351,6 +352,7 @@ module Rack
           when "none"
             # 4.1 "none" access grant type (i.e. two-legged OAuth flow)
             requested_scope = request.POST["scope"] || client.scope
+            requested_scope = requested_scope.split(',').join(' ')
             access_token = AccessToken.create_token_for(client, requested_scope)
           when "authorization_code"
             # 4.1.1.  Authorization Code
@@ -368,6 +370,7 @@ module Rack
             username, password = request.POST.values_at("username", "password")
             raise InvalidGrantError, "Missing username/password" unless username && password
             requested_scope = request.POST["scope"] || client.scope
+            requested_scope = requested_scope.split(',').join(' ')
             raise InvalidScopeError unless (Utils.normalize_scope(requested_scope) - Utils.normalize_scope(client.scope)).empty?
             args = [username, password]
             args << client.id << requested_scope unless options.authenticator.arity == 2
@@ -379,7 +382,7 @@ module Rack
           end
           logger.info "RO2S: Access token #{access_token.token} granted to client #{client.display_name}, identity #{access_token.identity} that requested scope #{access_token.scope}" if logger
           response = { :access_token=>access_token.token }
-          response[:scope] = access_token.scope
+          response[:scope] = access_token.scope.split(' ').join(',')
           return [200, { "Content-Type"=>"application/json", "Cache-Control"=>"no-store" }, [response.to_json]]
           # 4.3.  Error Response
         rescue OAuthError=>error
