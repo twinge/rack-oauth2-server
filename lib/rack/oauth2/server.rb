@@ -389,7 +389,7 @@ module Rack
           logger.info "RO2S: Access token #{access_token.token} granted to client #{client.display_name}, identity #{access_token.identity} that requested scope #{access_token.scope}" if logger
           response = { :access_token=>access_token.token }
           response[:scope] = access_token.scope.split(' ').join(',')
-          response[:person] = Person.find_by_personID(access_token.identity).to_hash
+          response[:person] = User.find(access_token.identity).person.to_hash
           return [200, { "Content-Type"=>"application/json", "Cache-Control"=>"no-store" }, [response.to_json]]
           # 4.3.  Error Response
         rescue OAuthError=>error
