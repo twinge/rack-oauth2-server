@@ -356,7 +356,7 @@ module Rack
             # 4.1 "none" access grant type (i.e. two-legged OAuth flow)
             requested_scope = request.POST["scope"] || client.scope
             requested_scope = requested_scope.split(',').join(' ')
-            raise NotALeaderError unless options.permissions_authenticator(access_token.identity)
+            raise NotALeaderError unless options.permissions_authenticator(*[(access_token.identity)])
             access_token = AccessToken.create_token_for(client, requested_scope)
           when "authorization_code"
             # 4.1.1.  Authorization Code
