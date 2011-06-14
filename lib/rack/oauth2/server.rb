@@ -157,7 +157,7 @@ module Rack
       Options = Struct.new(:access_token_path, :authenticator, :authorization_types,
         :authorize_path, :database, :host, :param_authentication, :path, :realm, :logger, :permissions_authenticator)
 
-      def initialize(app, options = Options.new, &authenticator, &perm_auth)
+      def initialize(app, options = Options.new, &authenticator, &permissions_authenticator)
         @app = app
         @options = options
         @options.authenticator ||= authenticator
@@ -165,7 +165,7 @@ module Rack
         @options.authorize_path ||= "/oauth/authorize"
         @options.authorization_types ||=  %w{code token}
         @options.param_authentication ||= false
-        #@options.permissions_authenticator ||= perm_auth
+        @options.permissions_authenticator ||= permissions_authenticator
       end
 
       # @see Options
