@@ -155,9 +155,9 @@ module Rack
       #     user if user && user.authenticated?(password)
       #   end
       Options = Struct.new(:access_token_path, :authenticator, :authorization_types,
-        :authorize_path, :database, :host, :param_authentication, :path, :realm, :logger)
+        :authorize_path, :database, :host, :param_authentication, :path, :realm, :logger, :permissions_authenticator)
 
-      def initialize(app, options = Options.new, &authenticator)
+      def initialize(app, options = Options.new, &authenticator, &perm_auth)
         @app = app
         @options = options
         @options.authenticator ||= authenticator
@@ -165,6 +165,7 @@ module Rack
         @options.authorize_path ||= "/oauth/authorize"
         @options.authorization_types ||=  %w{code token}
         @options.param_authentication ||= false
+        @options.permissions_authenticator ||= perm_auth
       end
 
       # @see Options
@@ -200,6 +201,7 @@ module Rack
               access_token = AccessToken.from_token(token)
               raise InvalidTokenError if access_token.nil? || access_token.revoked
               raise ExpiredTokenError if access_token.expires_at && access_token.expires_at <= Time.now
+              raise NotALeaderError unless options.permissions_authenticator(access_token.identity)
               request.env["oauth.access_token"] = token
 
               request.env["oauth.identity"] = access_token.identity
@@ -355,6 +357,7 @@ module Rack
             # 4.1 "none" access grant type (i.e. two-legged OAuth flow)
             requested_scope = request.POST["scope"] || client.scope
             requested_scope = requested_scope.split(',').join(' ')
+            raise NotALeaderError unless options.permissions_authenticator(access_token.identity)
             access_token = AccessToken.create_token_for(client, requested_scope)
           when "authorization_code"
             # 4.1.1.  Authorization Code
@@ -365,6 +368,7 @@ module Rack
               raise InvalidGrantError, "Wrong redirect URI" unless grant.redirect_uri == Utils.parse_redirect_uri(request.POST["redirect_uri"]).to_s
             end
             raise InvalidGrantError, "This access grant expired" if grant.expires_at && grant.expires_at <= Time.now
+            raise NotALeaderError unless options.permissions_authenticator(access_token.identity)
             access_token = grant.authorize!
           when "password"
             raise UnsupportedGrantType unless options.authenticator
@@ -378,6 +382,7 @@ module Rack
             args << client.id << requested_scope unless options.authenticator.arity == 2
             identity = options.authenticator.call(*args)
             raise InvalidGrantError, "Username/password do not match" unless identity
+            raise NotALeaderError unless options.permissions_authenticator(access_token.identity)
             access_token = AccessToken.get_token_for(identity, client, requested_scope)
           else
             raise UnsupportedGrantType

@@ -98,7 +98,12 @@ module Rack
           super :unsupported_response_type, "The requested response type is not supported."
         end
       end
-
+      
+      class NotALeaderError < OAuthError
+        def initialize
+          super :not_a_leader, "The access token identity does not have leader status."
+        end
+      end
     end
   end
 end
