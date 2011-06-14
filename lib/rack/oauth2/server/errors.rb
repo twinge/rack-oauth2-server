@@ -6,7 +6,7 @@ module Rack
       class OAuthError < StandardError
 
         def initialize(code, message)
-          super "{error: #{message}}"
+          super '{"error": "#{message}"}'
           @code = code.to_sym
         end
 
