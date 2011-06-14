@@ -165,7 +165,7 @@ module Rack
         @options.authorize_path ||= "/oauth/authorize"
         @options.authorization_types ||=  %w{code token}
         @options.param_authentication ||= false
-        @options.permissions_authenticator ||= perm_auth
+        #@options.permissions_authenticator ||= perm_auth
       end
 
       # @see Options
