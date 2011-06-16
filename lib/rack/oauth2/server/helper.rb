@@ -78,6 +78,7 @@ module Rack
         # @return 403
         def no_scope!(scope)
           @response["oauth.no_scope"] = scope.to_s
+  
           @response.status = 403
         end
 

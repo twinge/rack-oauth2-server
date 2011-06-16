@@ -59,7 +59,8 @@ module Rack
         # filter; you can set the filter in a parent class and skip it in child
         # classes that need special handling.
         def oauth_required
-          head oauth.no_access! unless oauth.authenticated?
+          render :json => '{"error": {"message": "You are now allowed to access this resource.", "code": "50" }}', :status => 401 and return false
+          #head oauth.no_access! unless oauth.authenticated?
         end
       end
 
@@ -76,10 +77,14 @@ module Rack
             before_filter options do |controller|
               if controller.oauth.authenticated?
                 if !controller.oauth.scope.strip.split.include?(scope)
-                  controller.send :head, controller.oauth.no_scope!(scope)
+                  #controller.send :head, controller.oauth.no_scope!(scope)
+                  #@response["oauth.no_scope"] = scope.to_s
+                  render :json => '{"error": {"message": "The requested scope is not supported.  The required scope is ' + scope + '.", "code": "55" }}', :status => 403, :head => 'aoeu' and return false
                 end
               else
-                controller.send :head, controller.oauth.no_access!
+                #@response["oauth.no_access"] = "true"
+                render :json => '{"error": {"message": "You are now allowed to access this resource.", "code": "50" }}', :status => 401 and return false
+                #controller.send :head, controller.oauth.no_access!
               end
             end
           else
