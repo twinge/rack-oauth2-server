@@ -17,7 +17,7 @@ module Rack
       # The end-user or authorization server denied the request.
       class AccessDeniedError < OAuthError
         def initialize
-          super :access_denied, "You are now allowed to access this resource.", "50"
+          super :access_denied, "You are not allowed to access this resource.", "50"
         end
       end
 
