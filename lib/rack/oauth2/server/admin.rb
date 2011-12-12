@@ -95,13 +95,13 @@ module Rack
 
         # It's a single-page app, this is that single page.
         get "/" do
-          send_file settings.public + "/views/index.html"
+          send_file settings.public_folder + "/views/index.html"
         end
 
         # Service JavaScript, CSS and jQuery templates from the gem.
         %w{js css views}.each do |path|
           get "/#{path}/:name" do
-            send_file settings.public + "/#{path}/" + params[:name]
+            send_file settings.public_folder + "/#{path}/" + params[:name]
           end
         end
 
