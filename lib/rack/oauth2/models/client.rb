@@ -6,6 +6,7 @@ module Rack
         has_many :auth_requests, :dependent => :destroy
         has_many :access_grants, :dependent => :destroy
         has_many :access_tokens, :dependent => :destroy
+        belongs_to :organization
 
         validates_presence_of :display_name
         validates_presence_of :link

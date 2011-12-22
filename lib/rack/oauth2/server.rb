@@ -354,7 +354,7 @@ module Rack
           when "none"
             # 4.1 "none" access grant type (i.e. two-legged OAuth flow)
             requested_scope = request.POST["scope"] || client.scope
-            requested_scope = requested_scope.split(',').join(' ')
+            requested_scope = requested_scope.split(',').join(' ') if requested_scope.include?(',')
             access_token = AccessToken.create_token_for(client, requested_scope)
           when "authorization_code"
             # 4.1.1.  Authorization Code
@@ -385,8 +385,10 @@ module Rack
           logger.info "RO2S: Access token #{access_token.token} granted to client #{client.display_name}, identity #{access_token.identity} that requested scope #{access_token.scope}" if logger
           response = { :access_token=>access_token.token }
           response[:scope] = access_token.scope.split(' ').join(',')
-          person = User.includes(:person => [:primary_organization]).find(access_token.identity).person
-          response[:person] = person.to_hash(person.primary_organization)
+          if access_token.identity
+            person = User.includes(:person => [:primary_organization]).find(access_token.identity).person
+            response[:person] = person.to_hash(person.primary_organization)
+          end
           return [200, { "Content-Type"=>"application/json", "Cache-Control"=>"no-store" }, [response.to_json]]
           # 4.3.  Error Response
         rescue OAuthError=>error

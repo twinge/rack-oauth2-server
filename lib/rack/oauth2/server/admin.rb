@@ -221,7 +221,7 @@ module Rack
               halt 400, "Image URL must be an absolute URL with HTTP/S scheme" unless
                 image_url.absolute? && %{http https}.include?(image_url.scheme)
             end
-            scope = params[:scope]
+            scope = params[:scope].join(' ')
             { :display_name=>display_name, :link=>link.to_s, :image_url=>image_url.to_s,
               :redirect_uri=>redirect_uri.to_s, :scope=>scope, :notes=>params[:notes] }
           end
