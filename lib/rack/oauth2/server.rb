@@ -386,7 +386,7 @@ module Rack
           response = { :access_token=>access_token.token }
           response[:scope] = access_token.scope.split(' ').join(',')
           if access_token.identity
-            person = User.includes(:person => [:primary_organization]).find(access_token.identity).person
+            person = User.includes(:person).find(access_token.identity).person
             response[:person] = person.to_hash(person.primary_organization)
           end
           return [200, { "Content-Type"=>"application/json", "Cache-Control"=>"no-store" }, [response.to_json]]
