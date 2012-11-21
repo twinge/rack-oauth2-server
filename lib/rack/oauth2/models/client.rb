@@ -20,7 +20,11 @@ module Rack
 
         def assign_code_and_secret
           self.code = Server.secure_random[0,20]
-          self.secret ||= Server.secure_random
+          self.secret = Server.secure_random
+          if Rack::OAuth2::Server::Client.where(secret: secret).first
+            # We need a unique secret
+            assign_code_and_secret
+          end
         end
         
         def redirect_uri=(url)
